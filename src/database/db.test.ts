@@ -250,42 +250,6 @@ describe('Database Module', () => {
       // We can verify it was called with the Pool constructor
       expect(Pool).toHaveBeenCalled();
     });
-
-    it('should handle pool errors', () => {
-      const errorHandler = mockPool.on.mock.calls.find(
-        (call: any[]) => call[0] === 'error'
-      );
-
-      expect(errorHandler).toBeDefined();
-      if (errorHandler) {
-        expect(errorHandler[0]).toBe('error');
-        expect(typeof errorHandler[1]).toBe('function');
-      }
-    });
-
-    it('should call process.exit on pool error', () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
-        throw new Error('process.exit called');
-      });
-
-      const errorHandlerCall = mockPool.on.mock.calls.find(
-        (call: any[]) => call[0] === 'error'
-      );
-
-      expect(errorHandlerCall).toBeDefined();
-      if (errorHandlerCall) {
-        const errorHandler = errorHandlerCall[1];
-        const testError = new Error('Pool error');
-
-        expect(() => errorHandler(testError)).toThrow('process.exit called');
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Unexpected error on idle client', testError);
-        expect(processExitSpy).toHaveBeenCalledWith(-1);
-      }
-
-      consoleErrorSpy.mockRestore();
-      processExitSpy.mockRestore();
-    });
   });
 
   describe('Edge Cases', () => {

@@ -405,11 +405,535 @@ HTTP Status Codes:
 
 ---
 
+## Swarm Management API
+
+### Base URL
+
+```
+http://localhost:3000/api/v1
+```
+
+### 7. List All Swarms
+
+Get all registered swarms with their current status. Response is cached for 30 seconds.
+
+**Endpoint:** `GET /swarms`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/swarms
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "swarm_id": "swarm-1",
+      "name": "Production Swarm",
+      "host_url": "http://192.168.1.100:8080",
+      "status": "online",
+      "last_seen": "2025-10-02T15:45:00Z",
+      "health_status": {
+        "cpu_percent": 45.2,
+        "memory_percent": 67.8,
+        "disk_percent": 34.1
+      },
+      "active_agents": 5,
+      "project_completion": 73.5,
+      "created_at": "2025-09-15T10:00:00Z",
+      "updated_at": "2025-10-02T15:45:00Z"
+    }
+  ],
+  "cached": false
+}
+```
+
+---
+
+### 8. Get Swarm Details
+
+Get detailed status for a specific swarm. Response is cached for 15 seconds.
+
+**Endpoint:** `GET /swarms/:swarm_id`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/swarms/swarm-1
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "swarm_id": "swarm-1",
+    "name": "Production Swarm",
+    "host_url": "http://192.168.1.100:8080",
+    "status": "online",
+    "last_seen": "2025-10-02T15:45:00Z",
+    "health_status": {
+      "cpu_percent": 45.2,
+      "memory_percent": 67.8,
+      "disk_percent": 34.1
+    },
+    "active_agents": 5,
+    "project_completion": 73.5,
+    "created_at": "2025-09-15T10:00:00Z",
+    "updated_at": "2025-10-02T15:45:00Z"
+  },
+  "cached": true
+}
+```
+
+---
+
+### 9. Get Swarm Status (Lightweight)
+
+Get lightweight status for a specific swarm (no heavy data). Response is cached for 15 seconds.
+
+**Endpoint:** `GET /swarms/:swarm_id/status`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/swarms/swarm-1/status
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "swarm_id": "swarm-1",
+    "status": "online",
+    "last_seen": "2025-10-02T15:45:00Z"
+  },
+  "cached": false
+}
+```
+
+---
+
+### 10. Register New Swarm
+
+Register a new swarm with the monitoring system.
+
+**Endpoint:** `POST /swarms`
+
+**Request Body:**
+```json
+{
+  "swarm_id": "swarm-2",
+  "name": "Development Swarm",
+  "host_url": "http://192.168.1.101:8080"
+}
+```
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/v1/swarms \
+  -H "Content-Type: application/json" \
+  -d '{"swarm_id":"swarm-2","name":"Development Swarm","host_url":"http://192.168.1.101:8080"}'
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "swarm_id": "swarm-2",
+    "name": "Development Swarm",
+    "host_url": "http://192.168.1.101:8080",
+    "status": "offline",
+    "last_seen": "2025-10-02T15:50:00Z",
+    "health_status": null,
+    "active_agents": 0,
+    "project_completion": null,
+    "created_at": "2025-10-02T15:50:00Z",
+    "updated_at": "2025-10-02T15:50:00Z"
+  }
+}
+```
+
+---
+
+### 11. Unregister Swarm
+
+Remove a swarm from the monitoring system.
+
+**Endpoint:** `DELETE /swarms/:swarm_id`
+
+**Example Request:**
+```bash
+curl -X DELETE http://localhost:3000/api/v1/swarms/swarm-2
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "message": "Swarm deleted successfully"
+}
+```
+
+---
+
+### 12. Force Cache Refresh
+
+Invalidate all swarm caches to force fresh data on next request.
+
+**Endpoint:** `POST /swarms/refresh`
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/v1/swarms/refresh
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "message": "Cache invalidated successfully"
+}
+```
+
+---
+
+## Polling Architecture
+
+### Background Polling Service
+
+The backend runs a continuous polling service (`swarmPollingService`) that:
+
+- Polls all registered swarm hosts every **30 seconds**
+- Fetches `/status` and `/project/completion` endpoints from each swarm
+- Updates the database with latest metrics
+- Marks swarms as **offline** if not seen for >60 seconds
+- Uses parallel requests with 5-second timeout per swarm
+
+### Mobile App Polling
+
+Mobile apps should poll the central backend with these intervals:
+
+- **Dashboard view**: Poll `GET /swarms` every 30 seconds
+- **Detail view**: Poll `GET /swarms/:id` every 15 seconds
+- **Background**: Pause polling when app is backgrounded
+- **Manual refresh**: Use `POST /swarms/refresh` for pull-to-refresh
+
+### Caching Strategy
+
+- **List endpoint** (`/swarms`): 30-second cache TTL
+- **Detail endpoint** (`/swarms/:id`): 15-second cache TTL
+- **Status endpoint** (`/swarms/:id/status`): 15-second cache TTL
+- Cache invalidation on: swarm creation, deletion, manual refresh
+- Cached responses include `"cached": true` indicator
+
+---
+
+## Velocity Tracking & Forecasting API
+
+### 13. Get Velocity Metrics
+
+Calculate rolling velocity for a swarm with trend analysis.
+
+**Endpoint:** `GET /swarms/:swarm_id/velocity`
+
+**Query Parameters:**
+- `days` (optional): Rolling window in days (default: 7, max: 90)
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/swarms/swarm-1/velocity?days=7
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "issues_per_day": 6.2,
+    "last_n_days": [5, 8, 7, 6, 4, 9, 7],
+    "period_days": 7,
+    "period_start": "2025-09-25",
+    "period_end": "2025-10-02",
+    "trend": "stable",
+    "trend_percentage": 2.3,
+    "slope": 0.1
+  },
+  "cached": false
+}
+```
+
+**Trend Values:**
+- `increasing`: Velocity growing by >10%
+- `stable`: Velocity within ±10%
+- `decreasing`: Velocity dropping by >10%
+
+---
+
+### 14. Get Completion Forecast
+
+Get estimated completion date and forecast for a swarm's project.
+
+**Endpoint:** `GET /swarms/:swarm_id/forecast`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/swarms/swarm-1/forecast
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "estimated_completion_date": "2025-11-15",
+    "days_remaining": 44,
+    "confidence_level": 0.95,
+    "confidence_label": "High",
+    "based_on_velocity": 6.2,
+    "remaining_issues": 58,
+    "last_updated": "2025-10-02T15:30:00Z"
+  },
+  "cached": false
+}
+```
+
+**Confidence Labels:**
+- `High` (0.85-1.0): Very consistent velocity
+- `Medium` (0.65-0.85): Moderate velocity variance
+- `Low` (0.0-0.65): High velocity variance or insufficient data
+
+---
+
+### 15. Get Historical Velocity Metrics
+
+Get historical velocity metrics for a date range.
+
+**Endpoint:** `GET /swarms/:swarm_id/velocity/history`
+
+**Query Parameters:**
+- `start_date` (required): Start date in YYYY-MM-DD format
+- `end_date` (required): End date in YYYY-MM-DD format
+
+**Example Request:**
+```bash
+curl "http://localhost:3000/api/v1/swarms/swarm-1/velocity/history?start_date=2025-09-01&end_date=2025-10-01"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "metrics": [
+      {
+        "date": "2025-10-01",
+        "issues_closed": 7,
+        "issues_opened": 5,
+        "net_progress": 2,
+        "avg_completion_time_hours": 36.2
+      },
+      {
+        "date": "2025-09-30",
+        "issues_closed": 6,
+        "issues_opened": 4,
+        "net_progress": 2,
+        "avg_completion_time_hours": 42.1
+      }
+    ]
+  },
+  "cached": false
+}
+```
+
+---
+
+### 16. Record Issue Completion
+
+Record when an issue is completed (for velocity tracking).
+
+**Endpoint:** `POST /swarms/:swarm_id/completions`
+
+**Request Body:**
+```json
+{
+  "issue_number": 42,
+  "closed_at": "2025-10-02T10:30:00Z",
+  "time_to_complete_hours": 48.5,
+  "assigned_agent": "Agent-1"
+}
+```
+
+**Fields:**
+- `issue_number` (required): GitHub issue number
+- `closed_at` (optional): ISO timestamp (defaults to current time)
+- `time_to_complete_hours` (optional): Time taken to complete
+- `assigned_agent` (optional): Agent that completed the issue
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/v1/swarms/swarm-1/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "issue_number": 42,
+    "time_to_complete_hours": 48.5,
+    "assigned_agent": "Agent-1"
+  }'
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "swarm_id": "swarm-1",
+    "issue_number": 42,
+    "closed_at": "2025-10-02T10:30:00Z",
+    "time_to_complete_hours": 48.5,
+    "assigned_agent": "Agent-1",
+    "created_at": "2025-10-02T10:30:00Z"
+  }
+}
+```
+
+---
+
+### 17. Trigger Daily Aggregation
+
+Manually trigger daily metric aggregation for a specific date.
+
+**Endpoint:** `POST /velocity/aggregate`
+
+**Request Body:**
+```json
+{
+  "date": "2025-10-01"
+}
+```
+
+**Fields:**
+- `date` (optional): Date in YYYY-MM-DD format (defaults to yesterday)
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/v1/velocity/aggregate \
+  -H "Content-Type: application/json" \
+  -d '{"date": "2025-10-01"}'
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "message": "Daily metrics aggregated for 2025-10-01"
+}
+```
+
+---
+
+## Velocity Tracking Features
+
+### How Velocity is Calculated
+
+The system tracks project velocity using a rolling average:
+- **Default window**: 7 days
+- **Configurable**: Up to 90 days
+- **Metric**: Issues closed per day
+- **Formula**: Total issues closed / number of days
+
+### Trend Detection Algorithm
+
+Uses linear regression to detect velocity trends:
+- Calculates slope of velocity over time
+- Converts slope to percentage relative to mean
+- **Increasing**: >10% trend (team getting faster)
+- **Stable**: ±10% trend (predictable pace)
+- **Decreasing**: <-10% trend (team slowing down)
+
+### Completion Forecasting
+
+Estimates project completion using:
+1. **Current velocity**: Issues per day over last 7 days
+2. **Remaining work**: Total issues - completed issues
+3. **Base estimate**: Remaining issues / velocity
+4. **Trend adjustment**: Adjusts estimate based on velocity trend
+5. **Confidence level**: Based on velocity variance (CV coefficient)
+
+### Daily Aggregation
+
+Background job runs daily to:
+- Aggregate issue completions by date
+- Calculate average completion times
+- Track issues opened vs closed
+- Compute net progress per day
+
+**Cron Schedule**: Midnight daily (0 0 * * *)
+
+---
+
+## Database Schema
+
+### velocity_metrics Table
+
+```sql
+CREATE TABLE velocity_metrics (
+  id SERIAL PRIMARY KEY,
+  swarm_id VARCHAR(255) NOT NULL,
+  date DATE NOT NULL,
+  issues_closed INT DEFAULT 0,
+  issues_opened INT DEFAULT 0,
+  net_progress INT DEFAULT 0,
+  avg_completion_time_hours DECIMAL(10,2),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(swarm_id, date)
+);
+
+CREATE INDEX idx_velocity_swarm_date ON velocity_metrics(swarm_id, date DESC);
+```
+
+### issue_completions Table
+
+```sql
+CREATE TABLE issue_completions (
+  id SERIAL PRIMARY KEY,
+  swarm_id VARCHAR(255) NOT NULL,
+  issue_number INT NOT NULL,
+  closed_at TIMESTAMP NOT NULL,
+  time_to_complete_hours DECIMAL(10,2),
+  assigned_agent VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_completions_swarm ON issue_completions(swarm_id, closed_at DESC);
+```
+
+---
+
 ## Future Enhancements
 
+**Intervention System:**
 - Push notifications when flags are created
 - Email notifications for critical flags
 - Slack/Discord integration
 - Custom flagging rules engine
 - Machine learning-based priority prediction
 - Integration with GitHub webhooks
+
+**Swarm Management:**
+- WebSocket support for real-time updates (eliminate polling)
+- Rate limiting per swarm (100 req/min)
+- Swarm control actions (pause, resume, restart)
+- Alerting system for offline swarms
+
+**Velocity & Forecasting:**
+- GitHub webhook integration for automatic completion tracking
+- Sprint burndown charts
+- Team member velocity breakdown
+- Issue complexity weighting
+- Multi-swarm velocity aggregation
+- Machine learning-based forecast refinement
+- Historical velocity data export (CSV/JSON)
+- Comparison across multiple swarms

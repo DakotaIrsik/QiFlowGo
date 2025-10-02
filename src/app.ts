@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import interventionRoutes from './routes/interventionRoutes';
 import swarmRoutes from './routes/swarmRoutes';
+import velocityRoutes from './routes/velocityRoutes';
 import { swarmPollingService } from './services/swarmPollingService';
 
 dotenv.config();
@@ -31,6 +32,7 @@ app.get('/health', (req: Request, res: Response) => {
 // API routes
 app.use('/api/v1', interventionRoutes);
 app.use('/api/v1', swarmRoutes);
+app.use('/api/v1', velocityRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

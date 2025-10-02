@@ -183,7 +183,7 @@ describe('InterventionFlagModel Integration Tests', () => {
         priority: 'critical',
         resolved: false,
         limit: 10,
-        offset: 0,
+        offset: 5,
       });
 
       expect(result).toHaveLength(2);

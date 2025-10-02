@@ -1,9 +1,9 @@
 import { Pool } from 'pg';
-import { db } from '../database/db';
+import dbPool from '../database/db';
 import { SwarmStatus, CreateSwarmParams, UpdateSwarmStatusParams } from '../types/swarm';
 
 export class SwarmModel {
-  private static pool: Pool = db;
+  private static pool: Pool = dbPool;
 
   /**
    * Find all swarms

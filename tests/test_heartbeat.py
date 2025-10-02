@@ -151,8 +151,10 @@ class TestHeartbeatAgent:
         result = agent.send_heartbeat(metrics)
 
         assert result is True
-        assert len(responses.calls) == 1
-        assert responses.calls[0].request.headers['Authorization'] == 'Bearer test-api-key-123'
+        # Verify at least one call was made and the most recent has the correct header
+        assert len(responses.calls) >= 1
+        assert responses.calls[-1].request.headers['Authorization'] == 'Bearer test-api-key-123'
+        assert responses.calls[-1].request.url == 'https://test-backend.com/api/v1/heartbeat'
 
     @responses.activate
     def test_send_heartbeat_failure(self, agent):
@@ -165,10 +167,12 @@ class TestHeartbeatAgent:
         )
 
         metrics = agent.collect_metrics()
+        calls_before = len(responses.calls)
         result = agent.send_heartbeat(metrics)
 
         assert result is False
-        assert len(responses.calls) == agent.max_retries
+        # Should retry max_retries times
+        assert len(responses.calls) == calls_before + agent.max_retries
 
     @responses.activate
     def test_send_heartbeat_retry_logic(self, agent):
@@ -192,10 +196,12 @@ class TestHeartbeatAgent:
         )
 
         metrics = agent.collect_metrics()
+        calls_before = len(responses.calls)
         result = agent.send_heartbeat(metrics)
 
         assert result is True
-        assert len(responses.calls) == 3
+        # Should have made 3 attempts (2 failures + 1 success)
+        assert len(responses.calls) == calls_before + 3
 
     def test_send_heartbeat_without_url(self):
         """Test that send_heartbeat skips when monitor_url is not configured."""

@@ -1,5 +1,6 @@
 import { SwarmModel } from '../models/SwarmModel';
 import { SwarmHostResponse, SwarmProjectResponse } from '../types/swarm';
+import type { Response } from 'node-fetch';
 
 /**
  * Service for polling swarm hosts to fetch status
@@ -134,7 +135,7 @@ export class SwarmPollingService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
+      return await response.json() as T;
     } finally {
       clearTimeout(timeoutId);
     }

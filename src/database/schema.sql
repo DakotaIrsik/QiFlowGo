@@ -59,3 +59,50 @@ CREATE TABLE IF NOT EXISTS issue_status_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_issue_status_history ON issue_status_history(swarm_id, issue_number, changed_at DESC);
+
+-- Velocity Metrics and Tracking Tables (Issue #24)
+
+-- Daily Velocity Metrics Table
+CREATE TABLE IF NOT EXISTS velocity_metrics (
+  id SERIAL PRIMARY KEY,
+  swarm_id VARCHAR(255) NOT NULL,
+  date DATE NOT NULL,
+  issues_closed INT DEFAULT 0,
+  issues_opened INT DEFAULT 0,
+  net_progress INT DEFAULT 0,
+  avg_completion_time_hours DECIMAL(10,2),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(swarm_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_velocity_swarm_date ON velocity_metrics(swarm_id, date DESC);
+
+-- Issue Completions Table
+CREATE TABLE IF NOT EXISTS issue_completions (
+  id SERIAL PRIMARY KEY,
+  swarm_id VARCHAR(255) NOT NULL,
+  issue_number INT NOT NULL,
+  closed_at TIMESTAMP NOT NULL,
+  time_to_complete_hours DECIMAL(10,2),
+  assigned_agent VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_completions_swarm ON issue_completions(swarm_id, closed_at DESC);
+
+-- Swarms Table (Issue #20 - Continuous Polling Architecture)
+CREATE TABLE IF NOT EXISTS swarms (
+  swarm_id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  host_url TEXT NOT NULL,
+  status VARCHAR(20) DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'degraded')),
+  last_seen TIMESTAMP,
+  health_status JSONB,
+  active_agents INT DEFAULT 0,
+  project_completion DECIMAL(5,2),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_swarms_status ON swarms(status);
+CREATE INDEX IF NOT EXISTS idx_swarms_last_seen ON swarms(last_seen DESC);
