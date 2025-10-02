@@ -11,9 +11,9 @@ QiFlowGo uses GitHub Actions for automated testing, building, and deployment. Th
 **Triggers:** Every pull request to `main`
 
 **What it does:**
-- Runs ESLint and TypeScript type checking
+- Runs TypeScript type checking (`npm run lint`)
 - Executes Jest unit tests with coverage reporting
-- Ensures test coverage is above 75%
+- Ensures test coverage is above 75% (currently achieving **95.59%**)
 - Builds the project to verify no compilation errors
 - Uploads coverage reports to Codecov (optional)
 
@@ -222,7 +222,11 @@ npm test
 
 ## Release Artifacts
 
-Each release generates:
+**Current Status**: Backend-only project
+- Mobile app is not yet implemented
+- Workflows are configured and ready for when mobile app is built
+
+**When mobile app is implemented**, each release will generate:
 - **iOS IPA**: `QiFlowControlCenter-v{version}-ios.ipa`
 - **Android APK**: `QiFlowControlCenter-v{version}-android.apk`
 - **Android AAB**: `QiFlowControlCenter-v{version}-android-bundle.aab`

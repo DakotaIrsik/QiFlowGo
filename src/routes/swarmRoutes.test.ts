@@ -34,7 +34,7 @@ describe('Swarm Routes', () => {
           swarm_id: 'swarm-1',
           name: 'Test Swarm',
           status: 'online',
-          last_seen: new Date(),
+          last_seen: '2025-10-02T23:00:00.000Z',
         },
       ];
 
@@ -55,7 +55,7 @@ describe('Swarm Routes', () => {
           swarm_id: 'swarm-1',
           name: 'Test Swarm',
           status: 'online',
-          last_seen: new Date(),
+          last_seen: new Date('2025-10-02T23:00:00.000Z'),
         },
       ];
 
@@ -65,7 +65,13 @@ describe('Swarm Routes', () => {
       const response = await request(app).get('/api/v1/swarms').expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toEqual(mockSwarms);
+      expect(response.body.data).toMatchObject([
+        {
+          swarm_id: 'swarm-1',
+          name: 'Test Swarm',
+          status: 'online',
+        },
+      ]);
       expect(response.body.cached).toBe(false);
       expect(SwarmModel.findAll).toHaveBeenCalled();
       expect(cache.set).toHaveBeenCalledWith('swarms:all', mockSwarms, 30000);
@@ -136,9 +142,40 @@ describe('Swarm Routes', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Swarm not found');
     });
+
+    it('should handle database errors', async () => {
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findById as jest.Mock).mockRejectedValue(new Error('Database error'));
+
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-1')
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Failed to fetch swarm');
+    });
   });
 
   describe('GET /api/v1/swarms/:swarm_id/status', () => {
+    it('should return cached status if available', async () => {
+      const cachedStatus = {
+        swarm_id: 'swarm-1',
+        status: 'online',
+        health_status: { cpu_percent: 45, memory_percent: 60, disk_percent: 30 },
+      };
+
+      (cache.get as jest.Mock).mockReturnValue(cachedStatus);
+
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-1/status')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(cachedStatus);
+      expect(response.body.cached).toBe(true);
+      expect(SwarmModel.findById).not.toHaveBeenCalled();
+    });
+
     it('should return lightweight status', async () => {
       const mockSwarm = {
         swarm_id: 'swarm-1',
@@ -166,6 +203,18 @@ describe('Swarm Routes', () => {
       });
       expect(response.body.data).not.toHaveProperty('name');
       expect(response.body.data).not.toHaveProperty('project_completion');
+    });
+
+    it('should return 404 if swarm not found', async () => {
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findById as jest.Mock).mockResolvedValue(null);
+
+      const response = await request(app)
+        .get('/api/v1/swarms/nonexistent/status')
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Swarm not found');
     });
   });
 

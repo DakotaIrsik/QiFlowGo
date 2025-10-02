@@ -1,6 +1,5 @@
 import { SwarmModel } from '../models/SwarmModel';
 import { SwarmHostResponse, SwarmProjectResponse } from '../types/swarm';
-import type { Response } from 'node-fetch';
 
 /**
  * Service for polling swarm hosts to fetch status
