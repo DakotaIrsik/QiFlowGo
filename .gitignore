@@ -55,6 +55,12 @@ Thumbs.db
 *.tmp
 *.bak
 
-# Node
+# Node.js / TypeScript
 node_modules/
 package-lock.json
+dist/
+.nyc_output/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
