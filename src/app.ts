@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import interventionRoutes from './routes/interventionRoutes';
 import swarmRoutes from './routes/swarmRoutes';
 import velocityRoutes from './routes/velocityRoutes';
+import deploymentRoutes from './routes/deploymentRoutes';
+import hostRoutes from './routes/hostRoutes';
 import { swarmPollingService } from './services/swarmPollingService';
 
 dotenv.config();
@@ -33,6 +35,8 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/v1', interventionRoutes);
 app.use('/api/v1', swarmRoutes);
 app.use('/api/v1', velocityRoutes);
+app.use('/api/v1', deploymentRoutes);
+app.use('/api/v1', hostRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

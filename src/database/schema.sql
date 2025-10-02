@@ -106,3 +106,70 @@ CREATE TABLE IF NOT EXISTS swarms (
 
 CREATE INDEX IF NOT EXISTS idx_swarms_status ON swarms(status);
 CREATE INDEX IF NOT EXISTS idx_swarms_last_seen ON swarms(last_seen DESC);
+
+-- Hosts Table (Issue #13 - Host Management & Remote Control)
+CREATE TABLE IF NOT EXISTS hosts (
+  host_id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  hostname VARCHAR(255) NOT NULL,
+  port INT DEFAULT 22,
+  username VARCHAR(255) NOT NULL,
+  os_type VARCHAR(20) NOT NULL CHECK (os_type IN ('linux', 'windows')),
+  status VARCHAR(20) DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'error')),
+  last_seen TIMESTAMP,
+  ssh_key_path TEXT,
+  capacity_max_swarms INT DEFAULT 5,
+  current_swarms INT DEFAULT 0,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_hosts_status ON hosts(status);
+CREATE INDEX IF NOT EXISTS idx_hosts_last_seen ON hosts(last_seen DESC);
+
+-- Command Audit Log Table (Issue #13)
+CREATE TABLE IF NOT EXISTS command_audit_log (
+  id SERIAL PRIMARY KEY,
+  host_id VARCHAR(255) NOT NULL REFERENCES hosts(host_id) ON DELETE CASCADE,
+  command VARCHAR(255) NOT NULL,
+  executed_by VARCHAR(255),
+  executed_at TIMESTAMP DEFAULT NOW(),
+  exit_code INT,
+  output TEXT,
+  error TEXT,
+  duration_ms INT,
+  success BOOLEAN,
+  metadata JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_host ON command_audit_log(host_id, executed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_executed_at ON command_audit_log(executed_at DESC);
+
+-- Deployments Table (Issue #14 - Swarm Deployment Wizard)
+CREATE TABLE IF NOT EXISTS deployments (
+  deployment_id VARCHAR(255) PRIMARY KEY,
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'deploying', 'deployed', 'failed')),
+  config JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
+CREATE INDEX IF NOT EXISTS idx_deployments_created ON deployments(created_at DESC);
+
+-- Deployment Progress Table (Issue #14)
+CREATE TABLE IF NOT EXISTS deployment_progress (
+  id SERIAL PRIMARY KEY,
+  deployment_id VARCHAR(255) NOT NULL REFERENCES deployments(deployment_id) ON DELETE CASCADE,
+  status VARCHAR(20) NOT NULL CHECK (status IN ('deploying', 'deployed', 'failed')),
+  current_step VARCHAR(255) NOT NULL,
+  progress_percent INT DEFAULT 0 CHECK (progress_percent >= 0 AND progress_percent <= 100),
+  logs JSONB DEFAULT '[]',
+  error TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(deployment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_deploy_progress_id ON deployment_progress(deployment_id);
