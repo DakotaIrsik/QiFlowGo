@@ -222,7 +222,7 @@ flag_test_failure_rate=0.10
           resolve();
         });
 
-        stream.on('error', (error) => {
+        stream.on('error', (error: Error) => {
           reject(error);
         });
 

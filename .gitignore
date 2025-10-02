@@ -59,6 +59,7 @@ Thumbs.db
 node_modules/
 package-lock.json
 dist/
+coverage/
 .nyc_output/
 *.tsbuildinfo
 .env

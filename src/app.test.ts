@@ -110,7 +110,7 @@ describe('QiFlow Control Center API - E2E Tests', () => {
 
   describe('API Route Integration', () => {
     it('should have intervention routes mounted at /api/v1', async () => {
-      const response = await request(app).get('/api/v1/swarms/test-swarm/intervention-flags');
+      const response = await request(app).get('/api/v1/swarms/test-swarm/interventions');
 
       // Should not be 404 - should reach the route handler (might be 500 due to mocks, but not 404)
       expect(response.status).not.toBe(404);

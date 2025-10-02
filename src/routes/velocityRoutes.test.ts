@@ -29,6 +29,24 @@ describe('Velocity Routes', () => {
   });
 
   describe('GET /api/v1/swarms/:swarm_id/velocity', () => {
+    it('should return cached velocity metrics if available', async () => {
+      const cachedData = {
+        velocity: { issues_per_day: 6.2 },
+        trend: { trend: 'stable' },
+      };
+
+      (cache.get as jest.Mock).mockReturnValue(cachedData);
+
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-123/velocity')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(cachedData);
+      expect(response.body.cached).toBe(true);
+      expect(SwarmModel.findById).not.toHaveBeenCalled();
+    });
+
     it('should return velocity metrics for a swarm', async () => {
       const mockSwarm = { swarm_id: 'swarm-123', name: 'Test Swarm' };
       const mockVelocity = {
@@ -144,6 +162,24 @@ describe('Velocity Routes', () => {
   });
 
   describe('GET /api/v1/swarms/:swarm_id/forecast', () => {
+    it('should return cached forecast if available', async () => {
+      const cachedForecast = {
+        estimated_completion_date: '2025-11-15',
+        days_remaining: 44,
+      };
+
+      (cache.get as jest.Mock).mockReturnValue(cachedForecast);
+
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-123/forecast')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(cachedForecast);
+      expect(response.body.cached).toBe(true);
+      expect(SwarmModel.findById).not.toHaveBeenCalled();
+    });
+
     it('should return forecast data', async () => {
       const mockSwarm = {
         swarm_id: 'swarm-123',
