@@ -7,6 +7,8 @@ import swarmRoutes from './routes/swarmRoutes';
 import velocityRoutes from './routes/velocityRoutes';
 import hostRoutes from './routes/hostRoutes';
 import { swarmPollingService } from './services/swarmPollingService';
+import { generalLimiter } from './middleware/rateLimiter';
+import { authenticateApiKey } from './middleware/auth';
 
 dotenv.config();
 
@@ -21,7 +23,7 @@ app.use(cors()); // CORS support
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
-// Health check endpoint
+// Health check endpoint (before rate limiting and auth)
 app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
@@ -29,6 +31,12 @@ app.get('/health', (req: Request, res: Response) => {
     service: 'QiFlow Control Center API',
   });
 });
+
+// Apply rate limiting to all API routes
+app.use('/api', generalLimiter);
+
+// Apply authentication to all API routes
+app.use('/api', authenticateApiKey);
 
 // API routes
 app.use('/api/v1', interventionRoutes);
