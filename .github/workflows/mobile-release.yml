@@ -1,0 +1,224 @@
+name: Mobile Build & Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+        if: hashFiles('ios/Podfile.lock') != ''
+
+      - name: Import code signing certificates
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create keychain
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+
+          # Import certificate
+          echo -n "$IOS_CERTIFICATE_BASE64" | base64 --decode -o certificate.p12
+          security import certificate.p12 -k build.keychain -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+          rm certificate.p12
+
+      - name: Import provisioning profile
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo -n "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      - name: Build iOS app
+        run: |
+          cd ios
+          xcodebuild -workspace QiFlowGo.xcworkspace \
+            -scheme QiFlowGo \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath ./build/QiFlowGo.xcarchive \
+            archive
+
+          xcodebuild -exportArchive \
+            -archivePath ./build/QiFlowGo.xcarchive \
+            -exportPath ./build \
+            -exportOptionsPlist ExportOptions.plist
+        if: hashFiles('ios/*.xcworkspace') != ''
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload IPA artifact
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: QiFlowControlCenter-v${{ steps.version.outputs.version }}-ios.ipa
+          path: ios/build/*.ipa
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Decode Android keystore
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo -n "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+
+      - name: Build Android APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        if: hashFiles('android/gradlew') != ''
+
+      - name: Build Android AAB
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          cd android
+          ./gradlew bundleRelease
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload APK artifact
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: QiFlowControlCenter-v${{ steps.version.outputs.version }}-android.apk
+          path: android/app/build/outputs/apk/release/*.apk
+
+      - name: Upload AAB artifact
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: QiFlowControlCenter-v${{ steps.version.outputs.version }}-android-bundle.aab
+          path: android/app/build/outputs/bundle/release/*.aab
+
+  release:
+    name: Create GitHub Release
+    needs: [build-ios, build-android]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            NOTES=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            NOTES=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./release-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: QiFlow Control Center v${{ steps.version.outputs.version }}
+          body: |
+            ## What's Changed
+            ${{ steps.notes.outputs.notes }}
+
+            ## Installation
+            - **iOS**: Download the `.ipa` file and install via TestFlight or enterprise distribution
+            - **Android**: Download the `.apk` file for direct installation or `.aab` for Play Store
+
+            🤖 Generated with [Claude Code](https://claude.com/claude-code)
+          files: |
+            release-artifacts/**/*.ipa
+            release-artifacts/**/*.apk
+            release-artifacts/**/*.aab
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

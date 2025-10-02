@@ -9,7 +9,12 @@
     "dev": "nodemon --exec ts-node src/server.ts",
     "test": "jest --coverage --verbose",
     "test:watch": "jest --watch",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "version:patch": "npm version patch -m \"Release v%s\"",
+    "version:minor": "npm version minor -m \"Release v%s\"",
+    "version:major": "npm version major -m \"Release v%s\"",
+    "preversion": "npm run lint && npm test",
+    "postversion": "git push && git push --tags"
   },
   "repository": {
     "type": "git",
