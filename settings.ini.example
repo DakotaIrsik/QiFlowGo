@@ -1,0 +1,54 @@
+# QiFlow Swarm Configuration Example
+# Copy this file to settings.ini and configure for your deployment
+
+[heartbeat]
+# URL of the central monitoring backend
+monitor_url = https://your-backend.com/api/v1/heartbeat
+
+# API key for authentication with the monitoring backend
+api_key = your-swarm-api-key
+
+# Heartbeat interval in seconds (default: 60)
+interval = 60
+
+# Unique identifier for this swarm (auto-generated if not specified)
+swarm_id =
+
+# Enable local API server for polling
+enable_api = true
+
+# Port for the local API server (default: 8080)
+api_port = 8080
+
+[project_tracking]
+# Enable project tracking and completion metrics
+enabled = true
+
+# GitHub repository in owner/repo format
+github_repo = owner/repo
+
+# GitHub personal access token for API access
+github_token =
+
+# Number of hours before flagging a blocked issue for human intervention
+flag_blocked_after_hours = 24
+
+# Number of consecutive agent failures before flagging
+flag_failures_threshold = 3
+
+# Test failure rate threshold (0.10 = 10%)
+flag_test_failure_rate = 0.10
+
+[agents]
+# Number of concurrent agents
+agent_count = 3
+
+# Agent execution schedule (cron format)
+schedule = */15 * * * *
+
+[logging]
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+level = INFO
+
+# Log file path
+file = heartbeat.log
