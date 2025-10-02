@@ -106,3 +106,42 @@ CREATE TABLE IF NOT EXISTS swarms (
 
 CREATE INDEX IF NOT EXISTS idx_swarms_status ON swarms(status);
 CREATE INDEX IF NOT EXISTS idx_swarms_last_seen ON swarms(last_seen DESC);
+
+-- Hosts Table (Issue #13 - Host Management & Remote Control)
+CREATE TABLE IF NOT EXISTS hosts (
+  host_id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  hostname VARCHAR(255) NOT NULL,
+  port INT DEFAULT 22,
+  username VARCHAR(255) NOT NULL,
+  os_type VARCHAR(20) NOT NULL CHECK (os_type IN ('linux', 'windows')),
+  status VARCHAR(20) DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'error')),
+  last_seen TIMESTAMP,
+  ssh_key_path TEXT,
+  capacity_max_swarms INT DEFAULT 5,
+  current_swarms INT DEFAULT 0,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_hosts_status ON hosts(status);
+CREATE INDEX IF NOT EXISTS idx_hosts_last_seen ON hosts(last_seen DESC);
+
+-- Command Audit Log Table (Issue #13)
+CREATE TABLE IF NOT EXISTS command_audit_log (
+  id SERIAL PRIMARY KEY,
+  host_id VARCHAR(255) NOT NULL REFERENCES hosts(host_id) ON DELETE CASCADE,
+  command VARCHAR(255) NOT NULL,
+  executed_by VARCHAR(255),
+  executed_at TIMESTAMP DEFAULT NOW(),
+  exit_code INT,
+  output TEXT,
+  error TEXT,
+  duration_ms INT,
+  success BOOLEAN,
+  metadata JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_host ON command_audit_log(host_id, executed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_executed_at ON command_audit_log(executed_at DESC);
