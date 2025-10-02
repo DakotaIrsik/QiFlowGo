@@ -145,3 +145,31 @@ CREATE TABLE IF NOT EXISTS command_audit_log (
 
 CREATE INDEX IF NOT EXISTS idx_audit_host ON command_audit_log(host_id, executed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_executed_at ON command_audit_log(executed_at DESC);
+
+-- Deployments Table (Issue #14 - Swarm Deployment Wizard)
+CREATE TABLE IF NOT EXISTS deployments (
+  deployment_id VARCHAR(255) PRIMARY KEY,
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'deploying', 'deployed', 'failed')),
+  config JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
+CREATE INDEX IF NOT EXISTS idx_deployments_created ON deployments(created_at DESC);
+
+-- Deployment Progress Table (Issue #14)
+CREATE TABLE IF NOT EXISTS deployment_progress (
+  id SERIAL PRIMARY KEY,
+  deployment_id VARCHAR(255) NOT NULL REFERENCES deployments(deployment_id) ON DELETE CASCADE,
+  status VARCHAR(20) NOT NULL CHECK (status IN ('deploying', 'deployed', 'failed')),
+  current_step VARCHAR(255) NOT NULL,
+  progress_percent INT DEFAULT 0 CHECK (progress_percent >= 0 AND progress_percent <= 100),
+  logs JSONB DEFAULT '[]',
+  error TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(deployment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_deploy_progress_id ON deployment_progress(deployment_id);
