@@ -58,34 +58,45 @@ QiFlow Control Center is a centralized monitoring and management platform that p
 **AI Integration**
 - Heartbeat agent module integrated into QiFlow swarms
 - Real-time telemetry via continuous API polling
-- Mobile app polls swarm host APIs every 15-30 seconds
-- Backend aggregates and caches swarm status
+- Backend polls swarm host APIs every 30 seconds
+- Mobile app polls central backend every 15-30 seconds
+- Response caching with 15-30s TTL to reduce load
 - Automatic alert detection and escalation
 
 ### System Components
 
-1. **Swarm Heartbeat Agent** (`core/heartbeat.py`)
+1. **Swarm Heartbeat Agent Module** ✅ (Implemented)
+   - Heartbeat agent module: `core/heartbeat.py`, `core/api_server.py`
    - Runs on each QiFlow swarm deployment
-   - Exposes REST API endpoints on swarm host for status polling
+   - Exposes REST API endpoints on swarm host (port 8080) for direct polling
    - Sends status updates to central backend every 60 seconds
-   - Collects system metrics, agent status, GitHub activity, and resource usage
-   - Tracks project completion percentage based on issue states
-   - Flags issues requiring human intervention based on:
-     - Blocked status lasting >24 hours
-     - Agent error patterns (3+ consecutive failures)
-     - Security vulnerabilities detected
-     - Test failures exceeding threshold (>10% failure rate)
+   - Collects system metrics (CPU, memory, disk), agent status, GitHub activity, and resource usage
+   - Flask-based API with 6 endpoints (/health, /status, /project/completion, /project/issues, /metrics, /agent/status)
+   - Comprehensive test suite with 39 unit tests (100% passing)
+   - Automatic retry logic for network failures (3 retries, 5s delay)
+   - Local metric logging for debugging and offline operation
+   - Full documentation in `docs/heartbeat-agent.md`
 
-2. **Monitoring API Service**
-   - Central backend receiving heartbeat data and serving mobile app
+2. **Human Intervention Flagging System** ✅ (Implemented)
+   - Backend API service for managing intervention flags (`src/routes/interventionRoutes.ts`)
+   - Database schema and models for tracking issues requiring human attention
+   - Automated flagging logic based on configurable criteria
+   - REST API endpoints for flag management (see `API.md` for details)
+   - Background services for continuous monitoring
+   - Comprehensive test coverage (90%+)
+
+3. **Monitoring API Service** ✅ (Implemented)
+   - Central backend receiving heartbeat data and serving mobile app (`src/routes/swarmRoutes.ts`)
    - Mobile app polls backend every 15-30 seconds for status updates
-   - Backend polls swarm host APIs every 30 seconds as backup
-   - Stores metrics in Firebase Realtime Database
-   - Detects missed heartbeats and triggers alerts
-   - Rate limiting (100 req/min per swarm)
-   - Caches responses with 15-second TTL to reduce load
+   - Backend polls swarm host APIs every 30 seconds (`src/services/swarmPollingService.ts`)
+   - SwarmModel manages swarm registry with PostgreSQL (`src/models/SwarmModel.ts`)
+   - Automatic offline detection for stale swarms (>60s without update)
+   - Response caching with configurable TTL (15s for details, 30s for lists)
+   - Cache invalidation on data changes and manual refresh endpoint
+   - Parallel polling with 5-second timeout per swarm
+   - Comprehensive test coverage for routes and caching
 
-3. **GitHub Integration Service**
+4. **GitHub Integration Service** (Planned)
    - GitHub App with webhook handlers
    - Caches data to avoid rate limits (5-minute TTL)
    - Aggregates commits, PRs, issues, and test results
@@ -95,48 +106,73 @@ QiFlow Control Center is a centralized monitoring and management platform that p
      - Velocity (issues closed per day)
      - Estimated completion date using linear regression
 
-4. **Host Management & Remote Control**
-   - SSH connection pool for remote operations
-   - Whitelisted commands (restart, update, logs)
-   - Host registration and capacity validation
-   - Audit logging for all actions
+5. **Host Management & Remote Control** ✅ (Implemented)
+   - SSH connection pool for efficient remote operations (`src/services/sshConnectionPool.ts`)
+   - Whitelisted command execution with OS-specific implementations (`src/services/remoteCommandService.ts`)
+   - Host registration with capacity tracking and availability checks (`src/models/HostModel.ts`)
+   - Comprehensive audit logging for security and compliance (`command_audit_log` table)
+   - Support for both Linux and Windows hosts
+   - REST API endpoints for host management (see `API.md` for details)
+   - 33 passing unit tests covering all functionality
 
-5. **Project Completion Tracker**
-   - Aggregates issue data from GitHub and local swarm state
+6. **Velocity Metrics & Project Completion Tracker** ✅ (Implemented)
+   - Basic metrics collection implemented in heartbeat agent
+   - Exposes `/project/completion` endpoint with completion percentage
    - Calculates completion percentage: `(completed_issues / total_issues) * 100`
-   - Identifies bottlenecks: issues in progress >48 hours
-   - Flags human intervention requirements
-   - Generates velocity trends and forecasts
-   - Updates mobile UI with expandable progress cards showing:
-     - Large percentage indicator (e.g., "73%")
-     - Breakdown by status (Ready: 12, In Progress: 8, Blocked: 3, Done: 45)
-     - Priority badges for flagged issues (🔴 Critical, 🟡 Review Needed)
-     - Tap to expand for detailed issue list with agent activity
+   - Returns issues breakdown by status and intervention flags
+   - **Advanced velocity analytics service** (`src/services/velocityService.ts`):
+     - Rolling velocity calculation (issues per day over configurable period)
+     - Linear regression-based trend detection (increasing/stable/decreasing)
+     - Confidence level calculation based on velocity variance (CV)
+     - Completion date forecasting with trend-adjusted estimates
+     - Standard deviation and coefficient of variation analysis
+   - **Velocity database models** (`src/models/VelocityMetricsModel.ts`):
+     - Daily velocity metrics tracking (issues_closed, issues_opened, net_progress)
+     - Issue completions with time-to-complete tracking
+     - Historical data aggregation for trend analysis
+   - Automated daily metrics aggregation via cron job
+   - Comprehensive test coverage for all velocity calculations
 
 ## API Endpoints
 
-### Monitoring & Status Polling
-The mobile app continuously polls swarm host APIs to maintain real-time status updates:
+### Human Intervention Management ✅ (Implemented)
+See `API.md` for comprehensive documentation. Key endpoints:
 
+- `GET /api/v1/swarms/:swarm_id/interventions` - List intervention flags with filtering
+- `GET /api/v1/swarms/:swarm_id/interventions/count` - Count unresolved flags by priority
+- `POST /api/v1/swarms/:swarm_id/issues/:issue_id/flag` - Manually flag issue for intervention
+- `PUT /api/v1/swarms/:swarm_id/interventions/:flag_id/resolve` - Mark intervention as resolved
+- `DELETE /api/v1/swarms/:swarm_id/issues/:issue_id/flag/:flag_id` - Remove intervention flag
+- `POST /api/v1/swarms/:swarm_id/interventions/bulk-resolve` - Bulk resolve multiple flags
+
+### Swarm Host API ✅ (Implemented)
+Direct polling endpoints exposed by each swarm (running on port 8080):
+
+- `GET http://swarm-host:8080/health` - Health check with swarm_id and timestamp
+- `GET http://swarm-host:8080/status` - Current swarm status (system, resources, agents)
+- `GET http://swarm-host:8080/project/completion` - Project completion percentage and breakdown
+- `GET http://swarm-host:8080/project/issues` - Paginated issue list with filters (page, limit, status, flagged)
+- `GET http://swarm-host:8080/metrics` - All collected metrics (system, agents, GitHub, resources, project)
+- `GET http://swarm-host:8080/agent/status` - Heartbeat agent status and configuration
+
+See `docs/heartbeat-agent.md` for full API documentation with request/response examples.
+
+### Central Backend API ✅ (Implemented)
+Core swarm management endpoints for mobile app polling:
+
+- `GET /api/v1/swarms` - List all registered swarms (30s cache, polled every 30s from dashboard)
+- `GET /api/v1/swarms/:swarm_id` - Get detailed swarm status (15s cache, polled every 15s from detail view)
+- `GET /api/v1/swarms/:swarm_id/status` - Lightweight status check (15s cache)
+- `POST /api/v1/swarms` - Register new swarm with host URL and metadata
+- `DELETE /api/v1/swarms/:swarm_id` - Unregister swarm
+- `POST /api/v1/swarms/refresh` - Force cache invalidation for fresh data
+
+**Planned Endpoints:**
 - `POST /api/v1/heartbeat` - Receive heartbeat from swarms
-- `GET /api/v1/swarms` - List all registered swarms (polled every 30s from dashboard)
-- `GET /api/v1/swarms/:swarm_id` - Get detailed swarm status (polled every 15s from detail view)
-- `GET /api/v1/swarms/:swarm_id/status` - Lightweight status check (CPU, memory, active agents)
-- `GET /api/v1/swarms/:swarm_id/progress` - Project completion percentage and breakdown
 - `POST /api/v1/swarms/:swarm_id/control` - Execute control actions
-
-### Project Tracking
-- `GET /api/v1/swarms/:swarm_id/project/completion` - Returns:
-  - `completion_percentage` (0-100)
-  - `total_issues`, `completed_issues`, `in_progress_issues`, `blocked_issues`
-  - `issues_requiring_human_intervention` (array with priority flags)
-  - `estimated_completion_date` (based on velocity)
-  - `velocity_trend` (issues/day over last 7 days)
-- `GET /api/v1/swarms/:swarm_id/project/issues` - Paginated issue list with filters
-- `PUT /api/v1/swarms/:swarm_id/issues/:issue_id/flag` - Flag/unflag issue for human intervention
 - `GET /api/v1/swarms/:swarm_id/project/timeline` - Historical progress data for charts
 
-### GitHub Integration
+### GitHub Integration (Planned)
 - `GET /api/v1/swarms/:swarm_id/github/activity` - Get GitHub activity feed
 - `GET /api/v1/swarms/:swarm_id/github/metrics` - Get aggregated GitHub metrics
 - `POST /api/v1/github/webhook` - Handle GitHub webhook events
@@ -278,22 +314,25 @@ Each swarm displays a **prominent completion percentage card** that serves as th
 ### QiFlow Control Center v1.0
 **Critical Features**
 - ✅ Project setup and infrastructure
-- 🔄 Swarm heartbeat agent module with API endpoints
-- 🔄 Monitoring API service with continuous polling
+- ✅ Swarm heartbeat agent module with API endpoints (PR #26)
+- ✅ Human intervention flagging system (PR #25)
+- ✅ Central monitoring API service with continuous polling (PR #28 - Issue #20)
+- ✅ Swarm registry and management endpoints
+- ✅ Background polling service with automatic offline detection
+- ✅ Response caching with configurable TTL
+- ✅ Velocity metrics system with trend analysis and forecasting
+- ✅ Comprehensive E2E test suite for backend API (PR #28 - Issue #16)
+- ✅ Host management & remote control system (Issue #13)
 - 🔄 Mobile authentication & onboarding
 - 🔄 Dashboard (fleet overview) with completion cards
 - 🔄 Swarm detail view with expandable progress tracking
 - 🔄 Swarm control actions
 - 🔄 Push notifications & alerts (including human intervention)
-- 🔄 Host management & remote control
-- 🔄 Project completion percentage tracking and UI
-- 🔄 Human intervention flagging system
 
 **High Priority Features**
-- 🔄 GitHub integration service with completion metrics
-- 🔄 End-to-end test suite
+- ✅ CI/CD pipeline with automated backend deployment and mobile builds (PR #27 - Issue #19)
+- 🔄 GitHub integration service with webhook support
 - 🔄 Security audit & penetration testing
-- 🔄 CI/CD pipeline with automated IPA/APK releases
 
 **Medium Priority Features**
 - 🔄 Swarm deployment wizard
@@ -312,32 +351,65 @@ Each swarm displays a **prominent completion percentage card** that serves as th
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ and npm/yarn
+- **Python 3.8+** (for heartbeat agent on swarm hosts)
+- **Node.js 18+** and npm/yarn (for backend API and mobile app)
 - React Native development environment (iOS: Xcode, Android: Android Studio)
+- **PostgreSQL** (for intervention flagging database)
 - Firebase project with Auth, Realtime Database, and Cloud Messaging enabled
 - GitHub App credentials for API integration
 - SSH access to target deployment hosts
 
 ### Installation
 
-**Backend Setup**
+**Swarm Heartbeat Agent Setup** (on each swarm host)
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd qiflow-control-center-backend
+cd QiFlowGo
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Configure the agent
+cp settings.ini.example settings.ini
+# Edit settings.ini with monitor_url, api_key, github_repo, etc.
+
+# Run tests
+pytest tests/
+
+# Start the heartbeat agent and API server
+python -m core.heartbeat &       # Sends metrics every 60s
+python -m core.api_server &      # Serves API on port 8080
+
+# Verify it's working
+curl http://localhost:8080/health
+```
+
+**Backend API Setup** (Node.js)
+```bash
+# Clone the repository
+git clone <repository-url>
+cd QiFlowGo
 
 # Install dependencies
 npm install
 
 # Configure environment variables
 cp .env.example .env
-# Edit .env with your Firebase and GitHub credentials
+# Edit .env with your Firebase, GitHub, and PostgreSQL credentials
+
+# Set up the database
+createdb qiflow_control_center
+psql qiflow_control_center < src/database/schema.sql
+
+# Run tests
+npm test
 
 # Start the server
 npm run dev
 ```
 
-**Mobile App Setup**
+**Mobile App Setup** (Future)
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -374,27 +446,46 @@ npm run android
 4. Note your App ID and generate a private key
 
 **Swarm Integration**
-Add to each QiFlow swarm's `settings.ini`:
-```ini
-[heartbeat]
-monitor_url=https://your-backend.com/api/v1/heartbeat
-api_key=your-swarm-api-key
-interval=60
-enable_api=true
-api_port=8080
 
-[project_tracking]
-enabled=true
-github_repo=owner/repo
-flag_blocked_after_hours=24
-flag_failures_threshold=3
-flag_test_failure_rate=0.10
-```
+1. **Install the heartbeat agent on your swarm:**
+   ```bash
+   pip install -r requirements.txt
+   cp settings.ini.example settings.ini
+   # Edit settings.ini with your configuration
+   ```
 
-The swarm will expose the following local API endpoints for polling:
+2. **Configure `settings.ini`:**
+   ```ini
+   [heartbeat]
+   monitor_url=https://your-backend.com/api/v1/heartbeat
+   api_key=your-swarm-api-key
+   interval=60
+   swarm_id=
+   enable_api=true
+   api_port=8080
+
+   [project_tracking]
+   enabled=true
+   github_repo=owner/repo
+   github_token=
+   flag_blocked_after_hours=24
+   flag_failures_threshold=3
+   flag_test_failure_rate=0.10
+   ```
+
+3. **Start the heartbeat agent and API server:**
+   ```bash
+   python -m core.heartbeat &       # Start heartbeat daemon
+   python -m core.api_server &      # Start API server on port 8080
+   ```
+
+The swarm exposes the following local API endpoints (see `docs/heartbeat-agent.md` for full details):
+- `GET http://swarm-host:8080/health` - Health check
 - `GET http://swarm-host:8080/status` - Current status and metrics
 - `GET http://swarm-host:8080/project/completion` - Project completion data
-- `GET http://swarm-host:8080/project/issues` - Issue list with intervention flags
+- `GET http://swarm-host:8080/project/issues` - Issue list with filters
+- `GET http://swarm-host:8080/metrics` - All collected metrics
+- `GET http://swarm-host:8080/agent/status` - Agent configuration
 
 ## Security Considerations
 
@@ -406,9 +497,14 @@ The swarm will expose the following local API endpoints for polling:
 - **JWT tokens** expire after configurable period (default: 24 hours)
 - **Biometric authentication** optional for mobile app access
 
-## CI/CD Pipeline
+## CI/CD Pipeline ✅
 
-QiFlow Control Center uses GitHub Actions for continuous integration and deployment, automatically building and releasing mobile artifacts on every push to main or release branches.
+QiFlow Control Center uses GitHub Actions for continuous integration and deployment. **See [docs/CI_CD.md](docs/CI_CD.md) for complete documentation.**
+
+**Quick Summary:**
+- ✅ Automated PR validation with tests and linting
+- ✅ Backend deployment workflow (configured, manual deploy)
+- ✅ Mobile build workflow (configured, awaiting mobile app)
 
 ### Automated Build & Release Pipeline
 
@@ -431,32 +527,33 @@ The CI/CD pipeline automatically:
 
 ### GitHub Actions Workflows
 
-**1. Pull Request Validation** (`.github/workflows/pr-check.yml`)
+**1. Pull Request Validation** (`.github/workflows/pr-check.yml`) ✅ **ACTIVE**
 - Runs on every PR to main
-- ESLint and TypeScript type checking
-- Jest unit tests (>75% coverage required)
-- iOS and Android build smoke tests
+- TypeScript type checking (`npm run lint`)
+- Jest unit tests with coverage reporting
+- Backend build verification
 - Prevents merge if any check fails
+- Supports Node.js 18.x and 20.x
 
-**2. Mobile Build & Release** (`.github/workflows/mobile-release.yml`)
-- Triggers on push to main or release tags
-- Parallel iOS and Android builds
-- Signs builds with certificates from GitHub Secrets
+**2. Mobile Build & Release** (`.github/workflows/mobile-release.yml`) ⚠️ **CONFIGURED (No Mobile App Yet)**
+- Ready for when mobile app is implemented
+- Triggers on push to main or release tags (v*.*.*)
+- Parallel iOS and Android builds with code signing
 - Generates release notes from commits
 - Uploads artifacts to GitHub Releases:
   - `QiFlowControlCenter-v{version}-ios.ipa`
   - `QiFlowControlCenter-v{version}-android.apk`
-  - `QiFlowControlCenter-v{version}-android-bundle.aab` (for Play Store)
+  - `QiFlowControlCenter-v{version}-android-bundle.aab`
 
-**3. Backend Deployment** (`.github/workflows/backend-deploy.yml`)
-- Deploys Node.js backend to cloud platform (Firebase Functions, AWS Lambda, or DigitalOcean)
-- Runs database migrations
-- Updates API documentation
-- Health check verification post-deployment
+**3. Backend Deployment** (`.github/workflows/backend-deploy.yml`) ⚠️ **CONFIGURED (Manual Deploy Only)**
+- Prepared for cloud platform deployment
+- Workflow defined but deployment commands are placeholder
+- Ready for Firebase Functions, AWS Lambda, or DigitalOcean
+- Database migration hooks ready for implementation
 
-### Release Artifacts
+### Release Artifacts (Future - When Mobile App Is Built)
 
-Every successful build generates the following artifacts:
+Mobile releases will generate:
 
 **iOS (.ipa)**
 - Ad-hoc distribution build for TestFlight
@@ -467,6 +564,8 @@ Every successful build generates the following artifacts:
 - APK for direct installation and testing
 - AAB (Android App Bundle) for Google Play Store
 - Signed with release keystore
+
+**Note**: Mobile app is not yet implemented. Backend API is fully functional.
 
 ### Secrets Configuration
 
@@ -536,24 +635,40 @@ Direct links:
 
 ### Testing
 
-**Backend Tests**
+**Backend Tests** ✅
 ```bash
-npm test                  # Run all tests
-npm run test:coverage     # Generate coverage report
-npm run test:e2e         # End-to-end API tests
+npm test                  # Run all tests with coverage (Jest + TypeScript)
+npm run test:watch        # Watch mode for development
+npm run lint              # TypeScript type checking
 ```
 
-**Mobile Tests**
+**Python Tests** ✅ (Heartbeat Agent & E2E)
 ```bash
-npm test                  # Jest unit tests
+pytest tests/                              # All Python tests
+pytest tests/test_heartbeat.py -v          # Heartbeat agent tests
+pytest tests/test_api_server.py -v         # API server tests
+pytest tests/test_api_integration.py -v    # E2E integration tests
+```
+
+**Mobile Tests** (Not yet implemented)
+```bash
+# Will be available when mobile app is built
 npm run test:e2e:ios     # Detox E2E tests (iOS)
 npm run test:e2e:android # Detox E2E tests (Android)
 ```
 
 **Coverage Goals**
-- Backend API: >85% coverage
-- Mobile App: >75% coverage
-- All critical user flows covered by E2E tests
+- Backend API: >85% coverage ✅ **Currently: 95.59%**
+- Mobile App: >75% coverage (not implemented yet)
+- All critical user flows covered by E2E tests ✅
+
+**E2E Test Suite** ✅
+- Comprehensive Python-based E2E tests (`tests/test_api_integration.py`)
+- Tests all swarm management endpoints (register, list, detail, delete)
+- Tests intervention flagging system endpoints
+- Tests caching behavior and invalidation
+- Tests error handling and validation
+- Run with: `pytest tests/test_api_integration.py -v`
 
 ### Continuous Deployment Strategy
 
@@ -583,11 +698,14 @@ This project is under active development. For feature requests and bug reports, 
 
 For questions, issues, or feature requests:
 - Create a GitHub issue with detailed description
-- Check existing documentation in `/docs` folder
-- Review API reference at `/docs/api-reference.md`
+- Check existing documentation:
+  - `README.md` - Project overview and setup
+  - `API.md` - Complete API documentation (interventions, swarms, velocity)
+  - `docs/heartbeat-agent.md` - Swarm Heartbeat Agent documentation
+  - `docs/CI_CD.md` - CI/CD pipeline and deployment guide
 
 ---
 
 **Status**: 🚧 Under Active Development
 **Version**: Pre-release (v1.0 in progress)
-**Last Updated**: 2025-10-02
+**Last Updated**: 2025-10-02 (updated by DOCS agent - reflected host management implementation)

@@ -59,3 +59,89 @@ CREATE TABLE IF NOT EXISTS issue_status_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_issue_status_history ON issue_status_history(swarm_id, issue_number, changed_at DESC);
+
+-- Velocity Metrics and Tracking Tables (Issue #24)
+
+-- Daily Velocity Metrics Table
+CREATE TABLE IF NOT EXISTS velocity_metrics (
+  id SERIAL PRIMARY KEY,
+  swarm_id VARCHAR(255) NOT NULL,
+  date DATE NOT NULL,
+  issues_closed INT DEFAULT 0,
+  issues_opened INT DEFAULT 0,
+  net_progress INT DEFAULT 0,
+  avg_completion_time_hours DECIMAL(10,2),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(swarm_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_velocity_swarm_date ON velocity_metrics(swarm_id, date DESC);
+
+-- Issue Completions Table
+CREATE TABLE IF NOT EXISTS issue_completions (
+  id SERIAL PRIMARY KEY,
+  swarm_id VARCHAR(255) NOT NULL,
+  issue_number INT NOT NULL,
+  closed_at TIMESTAMP NOT NULL,
+  time_to_complete_hours DECIMAL(10,2),
+  assigned_agent VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_completions_swarm ON issue_completions(swarm_id, closed_at DESC);
+
+-- Swarms Table (Issue #20 - Continuous Polling Architecture)
+CREATE TABLE IF NOT EXISTS swarms (
+  swarm_id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  host_url TEXT NOT NULL,
+  status VARCHAR(20) DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'degraded')),
+  last_seen TIMESTAMP,
+  health_status JSONB,
+  active_agents INT DEFAULT 0,
+  project_completion DECIMAL(5,2),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_swarms_status ON swarms(status);
+CREATE INDEX IF NOT EXISTS idx_swarms_last_seen ON swarms(last_seen DESC);
+
+-- Hosts Table (Issue #13 - Host Management & Remote Control)
+CREATE TABLE IF NOT EXISTS hosts (
+  host_id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  hostname VARCHAR(255) NOT NULL,
+  port INT DEFAULT 22,
+  username VARCHAR(255) NOT NULL,
+  os_type VARCHAR(20) NOT NULL CHECK (os_type IN ('linux', 'windows')),
+  status VARCHAR(20) DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'error')),
+  last_seen TIMESTAMP,
+  ssh_key_path TEXT,
+  capacity_max_swarms INT DEFAULT 5,
+  current_swarms INT DEFAULT 0,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_hosts_status ON hosts(status);
+CREATE INDEX IF NOT EXISTS idx_hosts_last_seen ON hosts(last_seen DESC);
+
+-- Command Audit Log Table (Issue #13)
+CREATE TABLE IF NOT EXISTS command_audit_log (
+  id SERIAL PRIMARY KEY,
+  host_id VARCHAR(255) NOT NULL REFERENCES hosts(host_id) ON DELETE CASCADE,
+  command VARCHAR(255) NOT NULL,
+  executed_by VARCHAR(255),
+  executed_at TIMESTAMP DEFAULT NOW(),
+  exit_code INT,
+  output TEXT,
+  error TEXT,
+  duration_ms INT,
+  success BOOLEAN,
+  metadata JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_host ON command_audit_log(host_id, executed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_executed_at ON command_audit_log(executed_at DESC);
