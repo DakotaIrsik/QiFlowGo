@@ -14,11 +14,32 @@ interval = 60
 # Unique identifier for this swarm (auto-generated if not specified)
 swarm_id =
 
+[api]
 # Enable local API server for polling
-enable_api = true
+enabled = true
 
 # Port for the local API server (default: 8080)
-api_port = 8080
+port = 8080
+
+# Host to bind to (default: 0.0.0.0)
+host = 0.0.0.0
+
+# API key for swarm host API authentication (optional)
+api_key = your-secure-api-key-here
+
+# CORS allowed origins (comma-separated, or * for all)
+cors_origins = https://your-backend.com,https://app.qiflow.com
+
+# Rate limiting (requests per minute per IP)
+rate_limit_per_minute = 100
+
+# Enable SSL/TLS (optional)
+enable_ssl = false
+ssl_cert = /path/to/cert.pem
+ssl_key = /path/to/key.pem
+
+# Cache TTL in seconds for API responses
+cache_ttl_seconds = 15
 
 [project_tracking]
 # Enable project tracking and completion metrics

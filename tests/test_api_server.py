@@ -12,13 +12,26 @@ from core.api_server import SwarmAPIServer
 
 
 @pytest.fixture
-def mock_agent():
+def mock_config():
+    """Create a mock configuration."""
+    from configparser import ConfigParser
+    config = ConfigParser()
+    config.add_section('api')
+    config.set('api', 'cors_origins', '*')
+    config.add_section('project_tracking')
+    config.set('project_tracking', 'github_repo', 'testowner/testrepo')
+    return config
+
+
+@pytest.fixture
+def mock_agent(mock_config):
     """Create a mock HeartbeatAgent."""
     agent = Mock(spec=HeartbeatAgent)
     agent.swarm_id = 'test-swarm-001'
     agent.monitor_url = 'https://test-backend.com/api/v1/heartbeat'
     agent.interval = 60
     agent.github_repo = 'testowner/testrepo'
+    agent.config = mock_config
 
     # Mock collect_metrics to return test data
     agent.collect_metrics.return_value = {
@@ -72,7 +85,9 @@ def mock_agent():
 
 
 @pytest.fixture
-def api_server(mock_agent):
+@patch('core.api_server.ProjectTracker')
+@patch('core.api_server.AgentMonitor')
+def api_server(mock_agent_monitor, mock_project_tracker, mock_agent):
     """Create a SwarmAPIServer instance with mock agent."""
     server = SwarmAPIServer(mock_agent, host='127.0.0.1', port=8080)
     server.app.config['TESTING'] = True
