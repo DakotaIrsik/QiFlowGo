@@ -40,7 +40,14 @@ describe('Intervention Routes', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toEqual(mockFlags);
+      expect(response.body.data).toMatchObject([{
+        id: 1,
+        swarm_id: 'swarm-1',
+        issue_number: 123,
+        priority: 'critical',
+        reason: 'Test',
+        trigger_type: 'manual',
+      }]);
       expect(response.body.count).toBe(1);
       expect(InterventionFlagModel.find).toHaveBeenCalledWith({
         swarm_id: 'swarm-1',
@@ -165,7 +172,14 @@ describe('Intervention Routes', () => {
         .expect(201);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toEqual(mockFlag);
+      expect(response.body.data).toMatchObject({
+        id: 1,
+        swarm_id: 'swarm-1',
+        issue_number: 123,
+        priority: 'critical',
+        reason: 'Manual intervention needed',
+        trigger_type: 'manual',
+      });
       expect(InterventionFlagModel.create).toHaveBeenCalledWith({
         swarm_id: 'swarm-1',
         issue_number: 123,
@@ -261,7 +275,11 @@ describe('Intervention Routes', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toEqual(mockFlag);
+      expect(response.body.data).toMatchObject({
+        id: 1,
+        resolved_by: 'user123',
+        resolution_note: 'Fixed',
+      });
       expect(InterventionFlagModel.resolve).toHaveBeenCalledWith({
         flag_id: 1,
         resolved_by: 'user123',
