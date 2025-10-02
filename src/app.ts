@@ -3,10 +3,15 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import interventionRoutes from './routes/interventionRoutes';
+import swarmRoutes from './routes/swarmRoutes';
+import { swarmPollingService } from './services/swarmPollingService';
 
 dotenv.config();
 
 const app: Application = express();
+
+// Start swarm polling service
+swarmPollingService.start();
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -25,6 +30,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // API routes
 app.use('/api/v1', interventionRoutes);
+app.use('/api/v1', swarmRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
