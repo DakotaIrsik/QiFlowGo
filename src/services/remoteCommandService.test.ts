@@ -56,8 +56,8 @@ describe('RemoteCommandService', () => {
 
     it('should execute a whitelisted command successfully', async () => {
       mockClient.exec.mockImplementation((cmd, callback) => {
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'close') {
               setTimeout(() => handler(0), 10);
             } else if (event === 'data') {
@@ -71,7 +71,8 @@ describe('RemoteCommandService', () => {
           write: jest.fn(),
           end: jest.fn(),
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       const result = await service.executeCommand('host-1', 'restart_swarm', {
@@ -107,8 +108,8 @@ describe('RemoteCommandService', () => {
 
       mockClient.exec.mockImplementation((cmd, callback) => {
         expect(cmd).toContain('powershell');
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'close') {
               setTimeout(() => handler(0), 10);
             }
@@ -120,7 +121,8 @@ describe('RemoteCommandService', () => {
           write: jest.fn(),
           end: jest.fn(),
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       await service.executeCommand('host-1', 'restart_swarm');
@@ -135,7 +137,7 @@ describe('RemoteCommandService', () => {
       let streamMock: any;
       mockClient.exec.mockImplementation((cmd, callback) => {
         streamMock = {
-          on: jest.fn((event, handler) => {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'close') {
               setTimeout(() => handler(0), 10);
             }
@@ -147,7 +149,8 @@ describe('RemoteCommandService', () => {
           write: jest.fn(),
           end: jest.fn(),
         };
-        callback(null, streamMock as any);
+        callback(undefined, streamMock as any);
+        return mockClient;
       });
 
       await service.executeCommand('host-1', 'update_settings', {
@@ -160,8 +163,8 @@ describe('RemoteCommandService', () => {
 
     it('should handle command execution errors', async () => {
       mockClient.exec.mockImplementation((cmd, callback) => {
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'close') {
               setTimeout(() => handler(1), 10);
             } else if (event === 'data') {
@@ -170,7 +173,7 @@ describe('RemoteCommandService', () => {
             return stream;
           }),
           stderr: {
-            on: jest.fn((event, handler) => {
+            on: jest.fn((event: string, handler: any) => {
               setTimeout(() => handler(Buffer.from('Permission denied')), 5);
               return stream.stderr;
             }),
@@ -178,7 +181,8 @@ describe('RemoteCommandService', () => {
           write: jest.fn(),
           end: jest.fn(),
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       const result = await service.executeCommand('host-1', 'restart_swarm');
@@ -190,7 +194,8 @@ describe('RemoteCommandService', () => {
 
     it('should handle SSH connection errors', async () => {
       mockClient.exec.mockImplementation((cmd, callback) => {
-        callback(new Error('Connection lost'), null as any);
+        callback(new Error('Connection lost'), undefined as any);
+        return mockClient;
       });
 
       await expect(
@@ -208,8 +213,8 @@ describe('RemoteCommandService', () => {
 
     it('should create audit log for successful execution', async () => {
       mockClient.exec.mockImplementation((cmd, callback) => {
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'close') {
               setTimeout(() => handler(0), 10);
             } else if (event === 'data') {
@@ -223,7 +228,8 @@ describe('RemoteCommandService', () => {
           write: jest.fn(),
           end: jest.fn(),
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       await service.executeCommand('host-1', 'check_status', {
@@ -244,8 +250,8 @@ describe('RemoteCommandService', () => {
 
     it('should handle stream errors', async () => {
       mockClient.exec.mockImplementation((cmd, callback) => {
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'error') {
               setTimeout(() => handler(new Error('Stream error')), 5);
             }
@@ -257,7 +263,8 @@ describe('RemoteCommandService', () => {
           write: jest.fn(),
           end: jest.fn(),
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       await expect(
@@ -293,8 +300,8 @@ describe('RemoteCommandService', () => {
 
       mockClient.exec.mockImplementation((cmd, callback) => {
         expect(cmd).toContain('tail -f');
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'data') {
               setTimeout(() => handler(Buffer.from('Log line 1\n')), 5);
             }
@@ -304,7 +311,8 @@ describe('RemoteCommandService', () => {
             on: jest.fn().mockReturnThis(),
           },
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       const cleanup = await service.streamLogs('host-1', onData, onError);
@@ -327,13 +335,14 @@ describe('RemoteCommandService', () => {
       mockClient.exec.mockImplementation((cmd, callback) => {
         expect(cmd).toContain('Get-Content');
         expect(cmd).toContain('-Wait');
-        const stream = {
+        const stream: any = {
           on: jest.fn().mockReturnThis(),
           stderr: {
             on: jest.fn().mockReturnThis(),
           },
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       await service.streamLogs('host-1', onData, onError);
@@ -355,7 +364,8 @@ describe('RemoteCommandService', () => {
       const onError = jest.fn();
 
       mockClient.exec.mockImplementation((cmd, callback) => {
-        callback(new Error('SSH exec failed'), null as any);
+        callback(new Error('SSH exec failed'), undefined as any);
+        return mockClient;
       });
 
       await service.streamLogs('host-1', onData, onError);
@@ -372,10 +382,10 @@ describe('RemoteCommandService', () => {
       const onError = jest.fn();
 
       mockClient.exec.mockImplementation((cmd, callback) => {
-        const stream = {
+        const stream: any = {
           on: jest.fn().mockReturnThis(),
           stderr: {
-            on: jest.fn((event, handler) => {
+            on: jest.fn((event: string, handler: any) => {
               if (event === 'data') {
                 setTimeout(() => handler(Buffer.from('Error message')), 5);
               }
@@ -383,7 +393,8 @@ describe('RemoteCommandService', () => {
             }),
           },
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       await service.streamLogs('host-1', onData, onError);
@@ -399,8 +410,8 @@ describe('RemoteCommandService', () => {
       (sshConnectionPool.getConnection as jest.Mock).mockResolvedValue(mockClient);
 
       mockClient.exec.mockImplementation((cmd, callback) => {
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'close') {
               setTimeout(() => handler(), 5);
             }
@@ -410,7 +421,8 @@ describe('RemoteCommandService', () => {
             on: jest.fn().mockReturnThis(),
           },
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       await service.streamLogs('host-1', jest.fn(), jest.fn());
@@ -511,8 +523,8 @@ describe('RemoteCommandService', () => {
 
     it('should handle exit code 0 (success)', async () => {
       mockClient.exec.mockImplementation((cmd, callback) => {
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'close') handler(0);
             return stream;
           }),
@@ -520,7 +532,8 @@ describe('RemoteCommandService', () => {
           write: jest.fn(),
           end: jest.fn(),
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       const result = await service.executeCommand('host-1', 'check_status');
@@ -530,8 +543,8 @@ describe('RemoteCommandService', () => {
 
     it('should handle non-zero exit codes', async () => {
       mockClient.exec.mockImplementation((cmd, callback) => {
-        const stream = {
-          on: jest.fn((event, handler) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any) => {
             if (event === 'close') handler(127);
             return stream;
           }),
@@ -539,7 +552,8 @@ describe('RemoteCommandService', () => {
           write: jest.fn(),
           end: jest.fn(),
         };
-        callback(null, stream as any);
+        callback(undefined, stream as any);
+        return mockClient;
       });
 
       const result = await service.executeCommand('host-1', 'check_status');
