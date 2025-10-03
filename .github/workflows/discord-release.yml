@@ -1,0 +1,38 @@
+name: Discord Release Notification
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send release notification
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_RELEASE_CHANNEL }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          # Escape quotes and newlines for JSON
+          ESCAPED_NAME=$(echo "$RELEASE_NAME" | jq -Rs .)
+          ESCAPED_BODY=$(echo "$RELEASE_BODY" | jq -Rs . | head -c 2000)
+
+          curl -X POST "https://discord.com/api/v10/channels/$DISCORD_CHANNEL_ID/messages" \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🚀 New Release: '"$RELEASE_TAG"'",
+                "description": '"$ESCAPED_NAME"',
+                "color": 3066993,
+                "url": "'"$RELEASE_URL"'",
+                "fields": [
+                  {"name": "Release Notes", "value": '"$ESCAPED_BODY"', "inline": false}
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+              }]
+            }'
