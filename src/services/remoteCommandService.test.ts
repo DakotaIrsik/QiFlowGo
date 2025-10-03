@@ -193,8 +193,9 @@ describe('RemoteCommandService', () => {
     });
 
     it('should handle SSH connection errors', async () => {
-      mockClient.exec.mockImplementation((cmd, callback) => {
+      mockClient.exec.mockImplementation((cmd: string, callback: any) => {
         callback(new Error('Connection lost'), null as any);
+        return mockClient as any;
       });
 
       await expect(
@@ -297,10 +298,10 @@ describe('RemoteCommandService', () => {
       const onData = jest.fn();
       const onError = jest.fn();
 
-      mockClient.exec.mockImplementation((cmd, callback) => {
+      mockClient.exec.mockImplementation((cmd: string, callback: any) => {
         expect(cmd).toContain('tail -f');
-        const stream = {
-          on: jest.fn((event: string, handler: any) => {
+        const stream: any = {
+          on: jest.fn((event: string, handler: any): any => {
             if (event === 'data') {
               setTimeout(() => handler(Buffer.from('Log line 1\n')), 5);
             }
@@ -362,8 +363,9 @@ describe('RemoteCommandService', () => {
       const onData = jest.fn();
       const onError = jest.fn();
 
-      mockClient.exec.mockImplementation((cmd, callback) => {
+      mockClient.exec.mockImplementation((cmd: string, callback: any) => {
         callback(new Error('SSH exec failed'), null as any);
+        return mockClient as any;
       });
 
       await service.streamLogs('host-1', onData, onError);
