@@ -1,8 +1,13 @@
 # QiFlow Control Center - Backend API Documentation
 
-## Human Intervention Flagging System
+## Table of Contents
 
-This API provides endpoints for managing intervention flags that alert when issues require human attention.
+1. [Health Check Endpoints](#health-check-endpoints)
+2. [Human Intervention Flagging System](#human-intervention-flagging-system)
+3. [Swarm Management](#swarm-management)
+4. [Velocity Metrics](#velocity-metrics)
+5. [Deployment Wizard](#deployment-wizard)
+6. [Host Management](#host-management)
 
 ### Base URL
 
@@ -15,6 +20,179 @@ http://localhost:3000/api/v1
 Authentication will be implemented in a future update. Currently, all endpoints are open for development.
 
 ---
+
+## Health Check Endpoints
+
+The API provides multiple health check endpoints for monitoring and orchestration.
+
+### 1. Basic Health Check
+
+Simple health check endpoint for quick status verification.
+
+**Endpoint:** `GET /health`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/health
+```
+
+**Example Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-10-02T12:00:00.000Z",
+  "service": "QiFlow Control Center API"
+}
+```
+
+---
+
+### 2. Detailed Health Check
+
+Comprehensive health check with database connectivity, memory usage, and service metrics.
+
+**Endpoint:** `GET /health/detailed`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/health/detailed
+```
+
+**Example Response (Healthy):**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-10-02T12:00:00.000Z",
+  "service": "QiFlow Control Center API",
+  "version": "1.0.0",
+  "uptime": {
+    "seconds": 3665,
+    "human": "1h 1m 5s"
+  },
+  "checks": {
+    "database": {
+      "status": "ok",
+      "responseTime": 15
+    },
+    "memory": {
+      "status": "ok",
+      "usage": {
+        "rss": 128,
+        "heapTotal": 64,
+        "heapUsed": 32,
+        "external": 2
+      }
+    },
+    "process": {
+      "status": "ok",
+      "pid": 12345
+    }
+  },
+  "responseTime": 20
+}
+```
+
+**Example Response (Unhealthy):**
+```json
+{
+  "status": "unhealthy",
+  "timestamp": "2025-10-02T12:00:00.000Z",
+  "service": "QiFlow Control Center API",
+  "version": "1.0.0",
+  "uptime": {
+    "seconds": 120,
+    "human": "2m"
+  },
+  "checks": {
+    "database": {
+      "status": "error",
+      "error": "Connection refused",
+      "responseTime": 0
+    },
+    "memory": {
+      "status": "ok",
+      "usage": {
+        "rss": 128,
+        "heapTotal": 64,
+        "heapUsed": 32,
+        "external": 2
+      }
+    },
+    "process": {
+      "status": "ok",
+      "pid": 12345
+    }
+  },
+  "responseTime": 5
+}
+```
+
+**HTTP Status Codes:**
+- `200` - Service is healthy
+- `503` - Service is unhealthy (database connection failed)
+
+**Status Values:**
+- `ok` - All checks passing
+- `degraded` - Service operational but with performance issues
+- `unhealthy` - Critical service components failing
+
+---
+
+### 3. Liveness Probe
+
+Kubernetes-style liveness probe for container orchestration.
+
+**Endpoint:** `GET /health/live`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/health/live
+```
+
+**Example Response:**
+```
+OK
+```
+
+**HTTP Status Codes:**
+- `200` - Server process is running
+
+**Use Case:** Container orchestration platforms (Kubernetes, Docker Swarm) use this to determine if the container should be restarted.
+
+---
+
+### 4. Readiness Probe
+
+Kubernetes-style readiness probe that checks if the service is ready to accept traffic.
+
+**Endpoint:** `GET /health/ready`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/health/ready
+```
+
+**Example Response (Ready):**
+```
+READY
+```
+
+**Example Response (Not Ready):**
+```
+NOT READY
+```
+
+**HTTP Status Codes:**
+- `200` - Service is ready to accept traffic (database connected)
+- `503` - Service is not ready (database not available)
+
+**Use Case:** Container orchestration platforms use this to determine if traffic should be routed to this instance.
+
+---
+
+## Human Intervention Flagging System
+
+This API provides endpoints for managing intervention flags that alert when issues require human attention.
 
 ## Endpoints
 

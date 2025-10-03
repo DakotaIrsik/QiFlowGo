@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import healthRoutes from './routes/healthRoutes';
 import interventionRoutes from './routes/interventionRoutes';
 import swarmRoutes from './routes/swarmRoutes';
 import velocityRoutes from './routes/velocityRoutes';
@@ -22,14 +23,8 @@ app.use(cors()); // CORS support
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
-// Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'QiFlow Control Center API',
-  });
-});
+// Health routes (basic and advanced health checks)
+app.use(healthRoutes);
 
 // API routes
 app.use('/api/v1', interventionRoutes);
