@@ -319,4 +319,44 @@ export class HostModel {
     const result = await this.pool.query(query, [host_id, limit]);
     return result.rows;
   }
+
+  /**
+   * Check if host has available capacity
+   */
+  static async hasCapacity(host_id: string): Promise<boolean> {
+    const query = `
+      SELECT current_swarms < capacity_max_swarms AS has_capacity
+      FROM hosts
+      WHERE host_id = $1
+    `;
+
+    const result = await this.pool.query(query, [host_id]);
+    return result.rows[0]?.has_capacity || false;
+  }
+
+  /**
+   * Increment swarm count for a host
+   */
+  static async incrementSwarmCount(host_id: string): Promise<void> {
+    const query = `
+      UPDATE hosts
+      SET current_swarms = current_swarms + 1
+      WHERE host_id = $1
+    `;
+
+    await this.pool.query(query, [host_id]);
+  }
+
+  /**
+   * Decrement swarm count for a host
+   */
+  static async decrementSwarmCount(host_id: string): Promise<void> {
+    const query = `
+      UPDATE hosts
+      SET current_swarms = GREATEST(0, current_swarms - 1)
+      WHERE host_id = $1
+    `;
+
+    await this.pool.query(query, [host_id]);
+  }
 }
