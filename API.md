@@ -12,11 +12,334 @@ http://localhost:3000/api/v1
 
 ### Authentication
 
-Authentication will be implemented in a future update. Currently, all endpoints are open for development.
+All API endpoints (except `/health`) require authentication via API key.
+
+**Header Format:**
+```
+Authorization: Bearer <your-api-key>
+```
+or
+```
+Authorization: ApiKey <your-api-key>
+```
+
+**Example:**
+```bash
+curl http://localhost:3000/api/v1/swarms \
+  -H "Authorization: Bearer your-api-key-here"
+```
+
+**Configuration:**
+Set the `API_KEY_SECRET` environment variable in your `.env` file:
+```
+API_KEY_SECRET=your-secure-api-key
+```
+
+**Error Responses:**
+- `401 Unauthorized`: Missing or invalid API key
+- `500 Internal Server Error`: Server configuration error (API_KEY_SECRET not set)
 
 ---
 
-## Endpoints
+### Rate Limiting
+
+All API routes are protected by rate limiting to prevent abuse.
+
+**General API Endpoints:**
+- **Limit**: 100 requests per 15 minutes per IP
+- **Applies to**: GET requests and general operations
+
+**Write Operations (POST/PUT/DELETE):**
+- **Limit**: 20 requests per 15 minutes per IP (future enhancement)
+- **Applies to**: Create, update, and delete operations
+
+**Command Execution:**
+- **Limit**: 10 executions per 5 minutes per IP (future enhancement)
+- **Applies to**: SSH command execution endpoints
+
+**Rate Limit Headers:**
+All responses include rate limit information:
+```
+RateLimit-Limit: 100
+RateLimit-Remaining: 95
+RateLimit-Reset: 1696262400
+```
+
+**Error Response (429 Too Many Requests):**
+```json
+{
+  "success": false,
+  "error": "Too many requests from this IP, please try again later."
+}
+```
+
+---
+
+## Monitoring API Endpoints
+
+### 1. Send Heartbeat
+
+Receive heartbeat data from swarm deployments and update swarm status.
+
+**Endpoint:** `POST /heartbeat`
+
+**Request Body:**
+```json
+{
+  "swarm_id": "swarm-1",
+  "status": "online",
+  "health_status": {
+    "cpu_percent": 45.5,
+    "memory_percent": 60.2,
+    "disk_percent": 30.1
+  },
+  "active_agents": 5,
+  "project_completion": 75
+}
+```
+
+**Parameters:**
+- `swarm_id` (required): Unique identifier for the swarm
+- `status` (optional): Status of the swarm (`online`, `offline`, `degraded`). Defaults to `online`
+- `health_status` (optional): Object containing health metrics
+  - `cpu_percent`: CPU usage percentage
+  - `memory_percent`: Memory usage percentage
+  - `disk_percent`: Disk usage percentage
+- `active_agents` (optional): Number of currently active agents
+- `project_completion` (optional): Project completion percentage
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/v1/heartbeat \
+  -H "Authorization: Bearer your-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "swarm_id": "swarm-1",
+    "status": "online",
+    "health_status": {
+      "cpu_percent": 45.5,
+      "memory_percent": 60.2,
+      "disk_percent": 30.1
+    },
+    "active_agents": 5,
+    "project_completion": 75
+  }'
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Heartbeat received",
+  "data": {
+    "swarm_id": "swarm-1",
+    "name": "Production Swarm",
+    "host_url": "http://192.168.1.100:8000",
+    "status": "online",
+    "last_seen": "2025-10-02T10:30:00.000Z",
+    "health_status": {
+      "cpu_percent": 45.5,
+      "memory_percent": 60.2,
+      "disk_percent": 30.1
+    },
+    "active_agents": 5,
+    "project_completion": 75,
+    "created_at": "2025-10-01T08:00:00.000Z",
+    "updated_at": "2025-10-02T10:30:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Missing swarm_id or invalid health_status format
+- `404 Not Found`: Swarm not found (must be registered first)
+- `401 Unauthorized`: Invalid API key
+- `500 Internal Server Error`: Server error
+
+---
+
+### 2. List All Swarms
+
+Get a list of all registered swarms with their current status.
+
+**Endpoint:** `GET /swarms`
+
+**Caching:** Results are cached for 30 seconds
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/swarms \
+  -H "Authorization: Bearer your-api-key-here"
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "swarm_id": "swarm-1",
+      "name": "Production Swarm",
+      "host_url": "http://192.168.1.100:8000",
+      "status": "online",
+      "last_seen": "2025-10-02T10:30:00.000Z",
+      "health_status": {
+        "cpu_percent": 45.5,
+        "memory_percent": 60.2,
+        "disk_percent": 30.1
+      },
+      "active_agents": 5,
+      "project_completion": 75,
+      "created_at": "2025-10-01T08:00:00.000Z",
+      "updated_at": "2025-10-02T10:30:00.000Z"
+    }
+  ],
+  "cached": false
+}
+```
+
+---
+
+### 3. Get Swarm Details
+
+Get detailed information about a specific swarm.
+
+**Endpoint:** `GET /swarms/:swarm_id`
+
+**Caching:** Results are cached for 15 seconds
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/swarms/swarm-1 \
+  -H "Authorization: Bearer your-api-key-here"
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "swarm_id": "swarm-1",
+    "name": "Production Swarm",
+    "host_url": "http://192.168.1.100:8000",
+    "status": "online",
+    "last_seen": "2025-10-02T10:30:00.000Z",
+    "health_status": {
+      "cpu_percent": 45.5,
+      "memory_percent": 60.2,
+      "disk_percent": 30.1
+    },
+    "active_agents": 5,
+    "project_completion": 75,
+    "created_at": "2025-10-01T08:00:00.000Z",
+    "updated_at": "2025-10-02T10:30:00.000Z"
+  },
+  "cached": false
+}
+```
+
+**Error Responses:**
+- `404 Not Found`: Swarm not found
+- `401 Unauthorized`: Invalid API key
+- `500 Internal Server Error`: Server error
+
+---
+
+### 4. Control Swarm
+
+Execute control actions on a swarm deployment.
+
+**Endpoint:** `POST /swarms/:swarm_id/control`
+
+**Request Body:**
+```json
+{
+  "action": "restart",
+  "parameters": {
+    "timeout": 30
+  }
+}
+```
+
+**Parameters:**
+- `action` (required): Control action to execute
+  - `start`: Start the swarm
+  - `stop`: Stop the swarm
+  - `restart`: Restart the swarm
+  - `update`: Update the swarm
+  - `config`: Update swarm configuration
+- `parameters` (optional): Action-specific parameters
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/v1/swarms/swarm-1/control \
+  -H "Authorization: Bearer your-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "restart",
+    "parameters": {
+      "timeout": 30
+    }
+  }'
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Control action 'restart' queued for swarm swarm-1",
+  "data": {
+    "swarm_id": "swarm-1",
+    "action": "restart",
+    "parameters": {
+      "timeout": 30
+    },
+    "status": "queued",
+    "queued_at": "2025-10-02T10:30:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Missing action or invalid action type
+- `404 Not Found`: Swarm not found
+- `401 Unauthorized`: Invalid API key
+- `500 Internal Server Error`: Server error
+
+**Audit Logging:**
+All control actions are logged for audit purposes with timestamp and parameters.
+
+---
+
+## Heartbeat Monitoring System
+
+### Automatic Offline Detection
+
+The system automatically monitors swarm heartbeats and marks swarms as offline if they haven't sent a heartbeat in 90 seconds.
+
+**Monitoring Service:**
+- Checks every 30 seconds
+- Heartbeat timeout: 90 seconds
+- Triggers push notifications when swarms go offline
+
+**Alert Notification:**
+When a swarm misses its heartbeat, a notification is sent:
+```json
+{
+  "title": "Swarm Offline Alert",
+  "message": "⚠️ Swarm \"Production Swarm\" (swarm-1) has missed its heartbeat. Last seen 95s ago.",
+  "data": {
+    "type": "heartbeat_missed",
+    "swarm_id": "swarm-1",
+    "swarm_name": "Production Swarm",
+    "last_seen": 95
+  }
+}
+```
+
+---
+
+## Intervention Flagging System Endpoints
 
 ### 1. List Intervention Flags
 
@@ -912,7 +1235,665 @@ CREATE INDEX idx_completions_swarm ON issue_completions(swarm_id, closed_at DESC
 
 ---
 
+## Swarm Deployment Wizard API
+
+### Base URL
+
+```
+http://localhost:3000/api/v1
+```
+
+### 18. Create Deployment Draft
+
+Initialize a new deployment wizard session.
+
+**Endpoint:** `POST /deployments`
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/v1/deployments \
+  -H "X-API-Key: your-api-key"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "draft",
+    "created_at": "2025-10-02T16:00:00Z"
+  }
+}
+```
+
+---
+
+### 19. Select Host (Step 1)
+
+Select target host for deployment with capacity validation.
+
+**Endpoint:** `PUT /deployments/:deployment_id/step1`
+
+**Request Body:**
+```json
+{
+  "host_id": "host-123"
+}
+```
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:3000/api/v1/deployments/deploy-abc123/step1 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{"host_id": "host-123"}'
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "draft",
+    "host_id": "host-123"
+  }
+}
+```
+
+---
+
+### 20. Configure GitHub Repository (Step 2)
+
+Configure GitHub repository for the swarm.
+
+**Endpoint:** `PUT /deployments/:deployment_id/step2`
+
+**Request Body:**
+```json
+{
+  "github_repo": "my-project",
+  "github_owner": "myorganization",
+  "github_token": "ghp_xxxxxxxxxxxx"
+}
+```
+
+**Fields:**
+- `github_repo` (required): Repository name
+- `github_owner` (required): Repository owner/organization
+- `github_token` (optional): GitHub personal access token
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:3000/api/v1/deployments/deploy-abc123/step2 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "github_repo": "my-project",
+    "github_owner": "myorganization"
+  }'
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "draft",
+    "github_repo": "my-project",
+    "github_owner": "myorganization"
+  }
+}
+```
+
+---
+
+### 21. Set Schedule (Step 3)
+
+Configure swarm execution schedule using presets or custom cron.
+
+**Endpoint:** `PUT /deployments/:deployment_id/step3`
+
+**Request Body (Preset):**
+```json
+{
+  "schedule_preset": "business_hours"
+}
+```
+
+**Request Body (Custom):**
+```json
+{
+  "schedule_preset": "custom",
+  "cron_expression": "0 9-17 * * 1-5"
+}
+```
+
+**Schedule Presets:**
+- `continuous`: 24/7 operation (`* * * * *`)
+- `business_hours`: 9 AM - 6 PM, Mon-Fri (`0 9-18 * * 1-5`)
+- `nightly`: 10 PM - 6 AM (`0 22-6 * * *`)
+- `custom`: User-defined cron expression
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:3000/api/v1/deployments/deploy-abc123/step3 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{"schedule_preset": "continuous"}'
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "draft",
+    "schedule_preset": "continuous",
+    "cron_expression": "* * * * *"
+  }
+}
+```
+
+---
+
+### 22. Configure Agents (Step 4)
+
+Define agent roles and responsibilities for the swarm.
+
+**Endpoint:** `PUT /deployments/:deployment_id/step4`
+
+**Request Body:**
+```json
+{
+  "agents": [
+    {
+      "role": "Backend Developer",
+      "responsibilities": ["API development", "Database design", "Testing"]
+    },
+    {
+      "role": "Frontend Developer",
+      "responsibilities": ["UI components", "State management", "Styling"]
+    }
+  ]
+}
+```
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:3000/api/v1/deployments/deploy-abc123/step4 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "agents": [
+      {
+        "role": "Full Stack Developer",
+        "responsibilities": ["Feature implementation", "Bug fixes", "Testing"]
+      }
+    ]
+  }'
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "draft",
+    "agents": [
+      {
+        "role": "Full Stack Developer",
+        "responsibilities": ["Feature implementation", "Bug fixes", "Testing"]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 23. Set Customer/Billing Info (Step 5)
+
+Configure customer and project details for billing.
+
+**Endpoint:** `PUT /deployments/:deployment_id/step5`
+
+**Request Body:**
+```json
+{
+  "customer_name": "Acme Corporation",
+  "project_name": "E-commerce Platform",
+  "customer_id": "cust-456",
+  "billing_rate": 150.00
+}
+```
+
+**Fields:**
+- `customer_name` (required): Customer name
+- `project_name` (required): Project name
+- `customer_id` (optional): External customer ID
+- `billing_rate` (optional): Hourly billing rate
+
+**Example Request:**
+```bash
+curl -X PUT http://localhost:3000/api/v1/deployments/deploy-abc123/step5 \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "customer_name": "Acme Corporation",
+    "project_name": "E-commerce Platform"
+  }'
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "draft",
+    "customer_name": "Acme Corporation",
+    "project_name": "E-commerce Platform"
+  }
+}
+```
+
+---
+
+### 24. Execute Deployment
+
+Execute the deployment to the selected host via SSH.
+
+**Endpoint:** `POST /deployments/:deployment_id/deploy`
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/v1/deployments/deploy-abc123/deploy \
+  -H "X-API-Key: your-api-key"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "message": "Deployment started",
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "deploying"
+  }
+}
+```
+
+---
+
+### 25. Get Deployment Progress
+
+Monitor real-time deployment progress.
+
+**Endpoint:** `GET /deployments/:deployment_id/progress`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/deployments/deploy-abc123/progress \
+  -H "X-API-Key: your-api-key"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "deploying",
+    "current_step": "Installing dependencies",
+    "progress_percent": 60,
+    "logs": [
+      "Connecting to host...",
+      "Creating deployment directory...",
+      "Cloning repository...",
+      "Installing Python dependencies...",
+      "Configuring settings.ini..."
+    ]
+  }
+}
+```
+
+**Status Values:**
+- `deploying`: Deployment in progress
+- `deployed`: Successfully deployed
+- `failed`: Deployment failed
+
+---
+
+### 26. Get Deployment Configuration
+
+Retrieve full deployment configuration.
+
+**Endpoint:** `GET /deployments/:deployment_id`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/deployments/deploy-abc123 \
+  -H "X-API-Key: your-api-key"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deployment_id": "deploy-abc123",
+    "status": "deployed",
+    "host_id": "host-123",
+    "github_repo": "my-project",
+    "github_owner": "myorganization",
+    "schedule_preset": "continuous",
+    "agents": [
+      {
+        "role": "Full Stack Developer",
+        "responsibilities": ["Feature implementation", "Bug fixes"]
+      }
+    ],
+    "customer_name": "Acme Corporation",
+    "project_name": "E-commerce Platform",
+    "created_at": "2025-10-02T16:00:00Z",
+    "updated_at": "2025-10-02T16:15:00Z"
+  }
+}
+```
+
+---
+
+### 27. Get Schedule Presets
+
+List available schedule presets.
+
+**Endpoint:** `GET /deployments/schedule-presets`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/deployments/schedule-presets \
+  -H "X-API-Key: your-api-key"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "continuous": {
+      "name": "Continuous",
+      "description": "Run swarm continuously, 24/7",
+      "cron_expression": "* * * * *"
+    },
+    "business_hours": {
+      "name": "Business Hours",
+      "description": "Run during business hours (9 AM - 6 PM, Mon-Fri)",
+      "cron_expression": "0 9-18 * * 1-5"
+    },
+    "nightly": {
+      "name": "Nightly",
+      "description": "Run overnight (10 PM - 6 AM)",
+      "cron_expression": "0 22-6 * * *"
+    }
+  }
+}
+```
+
+---
+
+## Deployment Process
+
+### SSH-Based Automated Deployment
+
+The deployment service executes the following steps via SSH:
+
+1. **Connect to Host** (10%) - Establish SSH connection
+2. **Create Directory** (20%) - Create deployment directory
+3. **Clone Repository** (30%) - Git clone from GitHub
+4. **Install Dependencies** (50%) - Install Python packages
+5. **Configure Settings** (70%) - Generate `settings.ini`
+6. **Start Swarm** (90%) - Launch heartbeat agent and API server
+7. **Register Swarm** (100%) - Register with central backend
+
+### Error Handling
+
+- SSH connection failures return detailed error messages
+- Failed deployments set status to `failed` with error logs
+- Host capacity validated before deployment begins
+- Automatic rollback on critical failures (future enhancement)
+
+---
+
+---
+
+## Host Management API
+
+### Base URL
+
+```
+http://localhost:3000/api/v1
+```
+
+### 28. List All Hosts
+
+Get all registered hosts.
+
+**Endpoint:** `GET /hosts`
+
+**Example Request:**
+```bash
+curl http://localhost:3000/api/v1/hosts \
+  -H "X-API-Key: your-api-key"
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "host_id": "host-123",
+      "name": "Production Server 1",
+      "hostname": "192.168.1.100",
+      "ssh_port": 22,
+      "ssh_username": "deploy",
+      "max_swarms": 5,
+      "active_swarms": 2,
+      "status": "online",
+      "created_at": "2025-10-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 29. List Available Hosts
+
+Get hosts with available capacity for new deployments.
+
+**Endpoint:** `GET /hosts/available`
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "host_id": "host-123",
+      "name": "Production Server 1",
+      "available_capacity": 3,
+      "max_swarms": 5,
+      "active_swarms": 2
+    }
+  ]
+}
+```
+
+---
+
+### 30. Register New Host
+
+Register a new host for swarm deployments.
+
+**Endpoint:** `POST /hosts`
+
+**Request Body:**
+```json
+{
+  "name": "Production Server 2",
+  "hostname": "192.168.1.101",
+  "ssh_port": 22,
+  "ssh_username": "deploy",
+  "ssh_private_key": "-----BEGIN OPENSSH PRIVATE KEY-----\n...",
+  "max_swarms": 10
+}
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "host_id": "host-456",
+    "name": "Production Server 2",
+    "status": "online"
+  }
+}
+```
+
+---
+
+### 31. Execute SSH Command
+
+Execute a command on a registered host.
+
+**Endpoint:** `POST /hosts/:host_id/execute`
+
+**Request Body:**
+```json
+{
+  "command": "df -h",
+  "timeout": 30000
+}
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "stdout": "Filesystem      Size  Used Avail Use% Mounted on\n...",
+    "stderr": "",
+    "exit_code": 0
+  }
+}
+```
+
+---
+
+## Discord Webhook Notifications
+
+QiFlow Control Center includes Discord webhook integration for automated notifications.
+
+### Setup
+
+See `docs/discord-integration.md` for complete setup instructions.
+
+**Quick Start:**
+1. Create Discord webhooks in your server
+2. Add webhook URLs to GitHub secrets:
+   - `DISCORD_COMMIT_CHANNEL`
+   - `DISCORD_RELEASE_CHANNEL`
+3. GitHub Actions workflows automatically send notifications
+
+### Programmatic Usage
+
+```typescript
+import { discordWebhookService } from './services/discordWebhookService';
+
+// Send commit notification
+await discordWebhookService.sendCommitNotification(webhookUrl, {
+  sha: 'abc123',
+  message: 'Fix authentication bug',
+  author: 'Developer Name',
+  url: 'https://github.com/repo/commit/abc123',
+  branch: 'main',
+  repository: 'QiFlowGo'
+});
+
+// Send release notification
+await discordWebhookService.sendReleaseNotification(webhookUrl, {
+  name: 'v1.0.0',
+  tag: 'v1.0.0',
+  body: 'Release notes',
+  author: 'Release Manager',
+  url: 'https://github.com/repo/releases/v1.0.0',
+  repository: 'QiFlowGo',
+  prerelease: false
+});
+
+// Send custom notification
+await discordWebhookService.sendCustomNotification(
+  webhookUrl,
+  'Custom Title',
+  'Custom message content',
+  0x00FF00, // Green color
+  [
+    { name: 'Field', value: 'Value', inline: true }
+  ]
+);
+```
+
+### Notification Types
+
+**Commit Notifications** 📝
+- Triggered on push to main/develop branches
+- Includes: commit message, author, SHA, branch, repository
+- Color: Discord Blurple (0x5865F2)
+
+**Release Notifications** 🎉
+- Triggered when releases are published
+- Includes: release name, tag, notes, author
+- Colors: Green for releases, Yellow for pre-releases
+
+**Feature Request Notifications** 💡
+- Programmatic support for issue notifications
+- Includes: title, description, author, labels
+- Color: Pink (0xEB459E)
+
+**Custom Notifications**
+- Fully customizable embeds
+- User-defined colors and fields
+- Generic QiFlow Bot username
+
+### GitHub Actions Integration
+
+The following workflows automatically send Discord notifications:
+
+**`.github/workflows/discord-commit-notification.yml`**
+- Runs on push to main/develop
+- Posts commit details to Discord
+
+**`.github/workflows/discord-release-notification.yml`**
+- Runs on release published
+- Posts release announcement to Discord
+
+---
+
 ## Future Enhancements
+
+**Deployment System:**
+- GitHub OAuth integration for repository selection
+- Automatic rollback on deployment failure
+- Health check validation post-deployment
+- Docker-based deployment option
+- Multi-stage deployment (dev/staging/prod)
 
 **Intervention System:**
 - Push notifications when flags are created

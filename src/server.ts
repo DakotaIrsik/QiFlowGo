@@ -1,6 +1,7 @@
 import app from './app';
 import { endPool } from './database/db';
 import { cronService } from './services/cronService';
+import { heartbeatMonitor } from './services/heartbeatMonitor';
 
 const PORT = process.env.PORT || 3000;
 
@@ -10,12 +11,14 @@ const server = app.listen(PORT, () => {
 
   // Start background jobs
   cronService.start();
+  heartbeatMonitor.start();
 });
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: closing HTTP server');
   cronService.stop();
+  heartbeatMonitor.stop();
   server.close(async () => {
     console.log('HTTP server closed');
     await endPool();
@@ -26,6 +29,7 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   console.log('SIGINT signal received: closing HTTP server');
   cronService.stop();
+  heartbeatMonitor.stop();
   server.close(async () => {
     console.log('HTTP server closed');
     await endPool();

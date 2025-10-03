@@ -1,0 +1,93 @@
+name: Discord Release Notification
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASE_CHANNEL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "Discord webhook URL not configured. Skipping notification."
+            exit 0
+          fi
+
+          # Extract release information
+          RELEASE_NAME="${{ github.event.release.name }}"
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          RELEASE_BODY="${{ github.event.release.body }}"
+          RELEASE_AUTHOR="${{ github.event.release.author.login }}"
+          RELEASE_URL="${{ github.event.release.html_url }}"
+          REPO_NAME="${{ github.repository }}"
+          IS_PRERELEASE="${{ github.event.release.prerelease }}"
+
+          # Determine title and color based on prerelease status
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            TITLE="🚧 Pre-Release Published"
+            COLOR=16701788  # Yellow
+          else
+            TITLE="🎉 Release Published"
+            COLOR=5763719   # Green
+          fi
+
+          # Use release name or tag as description
+          if [ -z "$RELEASE_NAME" ]; then
+            DESCRIPTION="$RELEASE_TAG"
+          else
+            DESCRIPTION="$RELEASE_NAME"
+          fi
+
+          # Escape special characters for JSON
+          DESCRIPTION_ESCAPED=$(echo "$DESCRIPTION" | jq -Rs .)
+          RELEASE_BODY_ESCAPED=$(echo "$RELEASE_BODY" | jq -Rs . | head -c 1024)
+
+          # Create Discord webhook payload
+          PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [{
+              "title": "$TITLE",
+              "description": $DESCRIPTION_ESCAPED,
+              "color": $COLOR,
+              "fields": [
+                {
+                  "name": "Repository",
+                  "value": "$REPO_NAME",
+                  "inline": true
+                },
+                {
+                  "name": "Tag",
+                  "value": "[\`$RELEASE_TAG\`]($RELEASE_URL)",
+                  "inline": true
+                },
+                {
+                  "name": "Author",
+                  "value": "$RELEASE_AUTHOR",
+                  "inline": true
+                },
+                {
+                  "name": "Release Notes",
+                  "value": $RELEASE_BODY_ESCAPED,
+                  "inline": false
+                }
+              ],
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)",
+              "footer": {
+                "text": "QiFlow Control Center"
+              }
+            }],
+            "username": "QiFlow Release Bot"
+          }
+          EOF
+          )
+
+          # Send to Discord
+          curl -H "Content-Type: application/json" \
+               -d "$PAYLOAD" \
+               "$DISCORD_WEBHOOK"
+
+          echo "Discord notification sent successfully"
