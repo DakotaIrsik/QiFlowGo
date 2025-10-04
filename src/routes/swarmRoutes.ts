@@ -861,4 +861,202 @@ router.get('/swarms/:swarm_id/issues/board', async (req: Request, res: Response)
   }
 });
 
+/**
+ * GET /api/v1/swarms/:swarm_id/ssh/connection
+ * Get SSH connection details for a swarm's host
+ * Returns encrypted credentials and connection info
+ * Used by mobile app SSH Quick Connect (Issue #10)
+ */
+router.get('/swarms/:swarm_id/ssh/connection', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const cacheKey = `swarm:${swarm_id}:ssh:connection`;
+
+    // Check cache first (60s TTL - connection info doesn't change often)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Get swarm to find host
+    const swarm = await SwarmModel.findById(swarm_id);
+    if (!swarm) {
+      return res.status(404).json({
+        success: false,
+        error: 'Swarm not found',
+      });
+    }
+
+    // Get host connection details
+    const connectionDetails = await SwarmDetailService.getSSHConnectionDetails(swarm_id);
+
+    // Cache for 60 seconds
+    cache.set(cacheKey, connectionDetails, 60000);
+
+    res.json({
+      success: true,
+      data: connectionDetails,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('Error fetching SSH connection details:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch SSH connection details',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/:swarm_id/ssh/command
+ * Get formatted SSH command string for quick connect
+ * Returns command that can be copied to clipboard or used to launch SSH clients
+ * Used by mobile app SSH Quick Connect fallback (Issue #10)
+ */
+router.get('/swarms/:swarm_id/ssh/command', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const { use_key } = req.query;
+
+    // Get SSH command
+    const commandInfo = await SwarmDetailService.getSSHCommand(
+      swarm_id,
+      use_key === 'true'
+    );
+
+    res.json({
+      success: true,
+      data: commandInfo,
+    });
+  } catch (error: any) {
+    console.error('Error generating SSH command:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate SSH command',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/:swarm_id/ssh/profiles
+ * Get saved SSH connection profiles for a swarm
+ * Used by mobile app SSH Quick Connect - Connection Profiles (Issue #10)
+ */
+router.get('/swarms/:swarm_id/ssh/profiles', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const cacheKey = `swarm:${swarm_id}:ssh:profiles`;
+
+    // Check cache first (120s TTL)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Get connection profiles
+    const profiles = await SwarmDetailService.getSSHProfiles(swarm_id);
+
+    // Cache for 2 minutes
+    cache.set(cacheKey, profiles, 120000);
+
+    res.json({
+      success: true,
+      data: profiles,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('Error fetching SSH profiles:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch SSH profiles',
+    });
+  }
+});
+
+/**
+ * POST /api/v1/swarms/:swarm_id/ssh/profiles
+ * Save/update SSH connection profile for a swarm
+ * Used by mobile app SSH Quick Connect - Connection Profiles (Issue #10)
+ */
+router.post('/swarms/:swarm_id/ssh/profiles', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const { profile_name, ssh_client, custom_port, custom_username } = req.body;
+
+    // Validation
+    if (!profile_name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: profile_name',
+      });
+    }
+
+    // Save profile
+    const profile = await SwarmDetailService.saveSSHProfile(swarm_id, {
+      profile_name,
+      ssh_client,
+      custom_port,
+      custom_username,
+    });
+
+    // Invalidate cache
+    cache.invalidatePattern(`swarm:${swarm_id}:ssh:profiles`);
+
+    res.status(201).json({
+      success: true,
+      data: profile,
+      message: 'SSH profile saved successfully',
+    });
+  } catch (error: any) {
+    console.error('Error saving SSH profile:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to save SSH profile',
+    });
+  }
+});
+
+/**
+ * DELETE /api/v1/swarms/:swarm_id/ssh/profiles/:profile_id
+ * Delete SSH connection profile
+ * Used by mobile app SSH Quick Connect - Connection Profiles (Issue #10)
+ */
+router.delete('/swarms/:swarm_id/ssh/profiles/:profile_id', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id, profile_id } = req.params;
+
+    // Delete profile
+    const deleted = await SwarmDetailService.deleteSSHProfile(swarm_id, profile_id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: 'SSH profile not found',
+      });
+    }
+
+    // Invalidate cache
+    cache.invalidatePattern(`swarm:${swarm_id}:ssh:profiles`);
+
+    res.json({
+      success: true,
+      message: 'SSH profile deleted successfully',
+    });
+  } catch (error: any) {
+    console.error('Error deleting SSH profile:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete SSH profile',
+    });
+  }
+});
+
 export default router;
