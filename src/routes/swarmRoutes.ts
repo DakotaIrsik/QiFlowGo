@@ -3,6 +3,7 @@ import { SwarmModel } from '../models/SwarmModel';
 import { cache } from '../services/cacheService';
 import { CreateSwarmParams } from '../types/swarm';
 import { ProjectCompletionService } from '../services/projectCompletionService';
+import { SwarmDetailService } from '../services/swarmDetailService';
 
 const router = Router();
 
@@ -529,6 +530,271 @@ router.get('/swarms/:swarm_id/project/completion', async (req: Request, res: Res
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch project completion',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/:swarm_id/activity
+ * Get activity feed for a swarm (commits, PRs, issues, tests)
+ * Used by mobile app Swarm Detail View - Activity Feed tab (Issue #7)
+ */
+router.get('/swarms/:swarm_id/activity', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const { github_owner, github_repo, github_token, limit } = req.query;
+
+    // Validation
+    if (!github_owner || !github_repo) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required query parameters: github_owner, github_repo',
+      });
+    }
+
+    const cacheKey = `swarm:${swarm_id}:activity:${github_owner}/${github_repo}:${limit || 20}`;
+
+    // Check cache first (15s TTL for real-time updates)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Get activity feed
+    const activities = await SwarmDetailService.getActivityFeed(
+      swarm_id,
+      github_owner as string,
+      github_repo as string,
+      github_token as string | undefined,
+      limit ? parseInt(limit as string) : 20
+    );
+
+    // Cache for 15 seconds
+    cache.set(cacheKey, activities, 15000);
+
+    res.json({
+      success: true,
+      data: activities,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('Error fetching activity feed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch activity feed',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/:swarm_id/agents
+ * Get agent status for a swarm
+ * Used by mobile app Swarm Detail View - Agent Status tab (Issue #7)
+ */
+router.get('/swarms/:swarm_id/agents', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const cacheKey = `swarm:${swarm_id}:agents`;
+
+    // Check cache first (15s TTL)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Get agent status
+    const agents = await SwarmDetailService.getAgentStatus(swarm_id);
+
+    // Cache for 15 seconds
+    cache.set(cacheKey, agents, 15000);
+
+    res.json({
+      success: true,
+      data: agents,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('Error fetching agent status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch agent status',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/:swarm_id/metrics
+ * Get resource metrics for a swarm
+ * Used by mobile app Swarm Detail View - Resource Metrics tab (Issue #7)
+ */
+router.get('/swarms/:swarm_id/metrics', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const cacheKey = `swarm:${swarm_id}:metrics`;
+
+    // Check cache first (10s TTL for metrics)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Get resource metrics
+    const metrics = await SwarmDetailService.getResourceMetrics(swarm_id);
+
+    // Cache for 10 seconds
+    cache.set(cacheKey, metrics, 10000);
+
+    res.json({
+      success: true,
+      data: metrics,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('Error fetching resource metrics:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch resource metrics',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/:swarm_id/schedule
+ * Get schedule configuration for a swarm
+ * Used by mobile app Swarm Detail View - Schedule Editor tab (Issue #7)
+ */
+router.get('/swarms/:swarm_id/schedule', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const cacheKey = `swarm:${swarm_id}:schedule`;
+
+    // Check cache first (60s TTL)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Get schedule
+    const schedule = await SwarmDetailService.getSchedule(swarm_id);
+
+    // Cache for 60 seconds
+    cache.set(cacheKey, schedule, 60000);
+
+    res.json({
+      success: true,
+      data: schedule,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('Error fetching schedule:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch schedule',
+    });
+  }
+});
+
+/**
+ * PUT /api/v1/swarms/:swarm_id/schedule
+ * Update schedule configuration for a swarm
+ * Used by mobile app Swarm Detail View - Schedule Editor tab (Issue #7)
+ */
+router.put('/swarms/:swarm_id/schedule', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const { enabled, cron_expression, timezone } = req.body;
+
+    // Update schedule
+    const schedule = await SwarmDetailService.updateSchedule(swarm_id, {
+      enabled,
+      cron_expression,
+      timezone,
+    });
+
+    // Invalidate cache
+    cache.invalidatePattern(`swarm:${swarm_id}:schedule`);
+
+    res.json({
+      success: true,
+      data: schedule,
+      message: 'Schedule updated successfully',
+    });
+  } catch (error: any) {
+    console.error('Error updating schedule:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update schedule',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/:swarm_id/issues/board
+ * Get issue board (Kanban view) for a swarm
+ * Used by mobile app Swarm Detail View - Issue Board tab (Issue #7)
+ */
+router.get('/swarms/:swarm_id/issues/board', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const { github_owner, github_repo, github_token } = req.query;
+
+    // Validation
+    if (!github_owner || !github_repo) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required query parameters: github_owner, github_repo',
+      });
+    }
+
+    const cacheKey = `swarm:${swarm_id}:board:${github_owner}/${github_repo}`;
+
+    // Check cache first (30s TTL)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Get issue board
+    const board = await SwarmDetailService.getIssueBoard(
+      swarm_id,
+      github_owner as string,
+      github_repo as string,
+      github_token as string | undefined
+    );
+
+    // Cache for 30 seconds
+    cache.set(cacheKey, board, 30000);
+
+    res.json({
+      success: true,
+      data: board,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('Error fetching issue board:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch issue board',
     });
   }
 });
