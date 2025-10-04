@@ -1,5 +1,13 @@
 [
   {
+    "number": 999012,
+    "title": "Issue #12: Mobile - Analytics & Insights",
+    "headRefName": "feature/issue-12",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
     "number": 999048,
     "title": "Issue #48: Add missing test coverage for middleware and services",
     "headRefName": "feature/issue-48",
