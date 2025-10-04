@@ -1,0 +1,461 @@
+[
+  {
+    "number": 999006,
+    "title": "Issue #6: Mobile - Dashboard (Fleet Overview)",
+    "headRefName": "feature/issue-6-dashboard",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
+    "headRefName": "feature/discord-bot-notifications",
+    "isDraft": false,
+    "number": 54,
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "title": "Add Discord bot-based notification workflows (Issue #43)"
+  },
+  {
+    "headRefName": "fix/ci-package-lock-blocker",
+    "isDraft": false,
+    "number": 52,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:47:33Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212285156/job/51855068623",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T03:46:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:47:30Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212285156/job/51855068587",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T03:46:46Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:47:38Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212285156/job/51855098207",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T03:47:36Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "CRITICAL FIX: Unblock all PRs - Track package-lock.json for npm ci"
+  },
+  {
+    "headRefName": "feature/swarm-host-api-endpoints",
+    "isDraft": false,
+    "number": 51,
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "title": "Implement Swarm Host API Endpoints (Issue #23)"
+  },
+  {
+    "headRefName": "feature/github-integration-service-issue-4",
+    "isDraft": false,
+    "number": 50,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:37:08Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212143979/job/51854685294",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T03:36:58Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:37:10Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212143979/job/51854685299",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T03:36:58Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:37:18Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212143979/job/51854695162",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T03:37:14Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "Backend - GitHub Integration Service (Issue #4)"
+  },
+  {
+    "headRefName": "feature/issue-48-test-coverage",
+    "isDraft": false,
+    "number": 49,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:21:52Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211912828/job/51854076111",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T03:21:46Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:13:29Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211777064/job/51853700521",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T03:13:22Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:13:28Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211777064/job/51853700533",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T03:13:24Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:21:54Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211912828/job/51854076115",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T03:21:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:13:37Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211777064/job/51853708966",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T03:13:34Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:22:01Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211912828/job/51854083599",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T03:21:58Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "Add comprehensive test coverage for middleware and services (Issue #48)"
+  },
+  {
+    "headRefName": "feature/health-check-endpoint",
+    "isDraft": false,
+    "number": 47,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:21:52Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211912828/job/51854076111",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T03:21:46Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:13:29Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211777064/job/51853700521",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T03:13:22Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:13:28Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211777064/job/51853700533",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T03:13:24Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:21:54Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211912828/job/51854076115",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T03:21:47Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:13:37Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211777064/job/51853708966",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T03:13:34Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:22:01Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211912828/job/51854083599",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T03:21:58Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "Add comprehensive health check endpoints for monitoring and orchestration"
+  },
+  {
+    "headRefName": "fix/add-package-lock-json",
+    "isDraft": false,
+    "number": 46,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:09:23Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211701362/job/51853483626",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T03:08:31Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:09:11Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211701362/job/51853483621",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T03:08:31Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:09:28Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18211701362/job/51853522848",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T03:09:26Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "Fix: Add package-lock.json to resolve CI failures"
+  },
+  {
+    "headRefName": "feature/issue-37-host-management",
+    "isDraft": false,
+    "number": 42,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:50:54Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212332358/job/51855189869",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T03:50:04Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:50:42Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212332358/job/51855189871",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T03:50:08Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T03:51:02Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18212332358/job/51855219969",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T03:50:59Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "Backend - Host Management & Remote Control (Issue #37)"
+  },
+  {
+    "headRefName": "feature/issue-3-monitoring-api",
+    "isDraft": false,
+    "number": 41,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:55:21Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209678424/job/51847674935",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T00:54:30Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:55:18Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209678424/job/51847674936",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T00:54:30Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:55:26Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209678424/job/51847714783",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T00:55:24Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "Backend - Monitoring API Service (Issue #3)"
+  },
+  {
+    "headRefName": "feature/issue-33-discord-notifications",
+    "isDraft": false,
+    "number": 40,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:23:19Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209157156/job/51846163042",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T00:22:37Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:23:17Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209157156/job/51846162972",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T00:22:36Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:23:26Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209157156/job/51846200482",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T00:23:22Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "Add Discord webhook integration for commit and release notifications"
+  },
+  {
+    "headRefName": "feature/issue-18-security-middleware",
+    "isDraft": false,
+    "number": 39,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:56:31Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209698853/job/51847731272",
+        "name": "Test & Build (18.x)",
+        "startedAt": "2025-10-03T00:55:46Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:56:31Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209698853/job/51847731269",
+        "name": "Test & Build (20.x)",
+        "startedAt": "2025-10-03T00:55:46Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2025-10-03T00:56:40Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/irsiksoftware/QiFlowGo/actions/runs/18209698853/job/51847765318",
+        "name": "PR Status Check",
+        "startedAt": "2025-10-03T00:56:37Z",
+        "status": "COMPLETED",
+        "workflowName": "Pull Request Validation"
+      }
+    ],
+    "title": "Implement security middleware for authentication and rate limiting (Issue #18)"
+  },
+  {
+    "number": 999001,
+    "title": "Issue #1: QiFlow Control Center - Project Setup",
+    "headRefName": "feature/issue-1",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
+    "number": 999005,
+    "title": "Issue #5: Mobile - Authentication & Onboarding",
+    "headRefName": "feature/issue-5",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
+    "number": 999032,
+    "title": "Issue #32: Discord notifications (duplicate of #33)",
+    "headRefName": "feature/issue-33-discord-notifications",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  }
+]
