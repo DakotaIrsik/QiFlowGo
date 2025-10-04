@@ -1,0 +1,72 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    name: Test & Build
+    runs-on: [self-hosted, linux]
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run tests with coverage
+        run: npm test
+        env:
+          CI: true
+
+      - name: Build project
+        run: npm run build
+
+      - name: Verify build artifacts
+        run: |
+          if [ ! -f dist/server.js ]; then
+            echo "Build failed - server.js not found"
+            exit 1
+          fi
+          echo "Build successful - artifacts verified"
+
+  discord-notify:
+    name: Discord Notification
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+      - name: Send Discord notification
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          webhookUrl: ${{ secrets.COMMIT_WEBHOOK }}
+          severity: ${{ needs.test-and-build.result == 'success' && 'info' || 'error' }}
+          username: QiFlowGo CI
+          avatarUrl: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
+          description: |
+            **Build ${{ needs.test-and-build.result == 'success' && 'Succeeded' || 'Failed' }}**
+
+            ${{ github.event.head_commit.message }}
+
+            **Branch:** ${{ github.ref_name }}
+            **Author:** ${{ github.event.head_commit.author.name }}
+            **Commit:** [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+          footer: QiFlowGo CI/CD
+        continue-on-error: true
