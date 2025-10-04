@@ -3,6 +3,7 @@ import express, { Application } from 'express';
 import swarmRoutes from './swarmRoutes';
 import { SwarmModel } from '../models/SwarmModel';
 import { cache } from '../services/cacheService';
+import { ProjectCompletionService } from '../services/projectCompletionService';
 
 // Mock the model and cache
 jest.mock('../models/SwarmModel');
@@ -13,6 +14,7 @@ jest.mock('../services/cacheService', () => ({
     invalidatePattern: jest.fn(),
   },
 }));
+jest.mock('../services/projectCompletionService');
 
 describe('Swarm Routes', () => {
   let app: Application;
@@ -690,6 +692,143 @@ describe('Swarm Routes', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Failed to execute control action');
+    });
+  });
+
+  describe('GET /api/v1/swarms/:swarm_id/project/completion', () => {
+    it('should return project completion data successfully', async () => {
+      const mockSwarm = { swarm_id: 'swarm-1', name: 'Test Swarm', status: 'online' };
+      const mockCompletionData = {
+        completion_percentage: 73,
+        total_issues: 68,
+        completed_issues: 45,
+        in_progress_issues: 8,
+        ready_issues: 12,
+        blocked_issues: 3,
+        issues_requiring_human_intervention: [
+          {
+            issue_number: 127,
+            title: 'Merge conflict in auth module',
+            priority: 'critical',
+            blocked_duration_hours: 48,
+            agent_message: 'Unable to resolve conflict',
+            github_url: 'https://github.com/owner/repo/issues/127',
+          },
+        ],
+        velocity_trend: {
+          issues_per_day: 6.2,
+          last_7_days: [5, 8, 7, 6, 4, 9, 7],
+          trend: 'stable',
+        },
+        estimated_completion_date: '2025-11-15',
+        confidence_level: 0.95,
+      };
+
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findById as jest.Mock).mockResolvedValue(mockSwarm);
+      (ProjectCompletionService.getProjectCompletion as jest.Mock).mockResolvedValue(mockCompletionData);
+
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-1/project/completion')
+        .query({ github_owner: 'owner', github_repo: 'repo' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockCompletionData);
+      expect(response.body.cached).toBe(false);
+      expect(cache.set).toHaveBeenCalled();
+    });
+
+    it('should return cached data if available', async () => {
+      const mockCompletionData = {
+        completion_percentage: 73,
+        total_issues: 68,
+        completed_issues: 45,
+      };
+
+      (cache.get as jest.Mock).mockReturnValue(mockCompletionData);
+
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-1/project/completion')
+        .query({ github_owner: 'owner', github_repo: 'repo' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockCompletionData);
+      expect(response.body.cached).toBe(true);
+      expect(SwarmModel.findById).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 if github_owner is missing', async () => {
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-1/project/completion')
+        .query({ github_repo: 'repo' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Missing required query parameters: github_owner, github_repo');
+    });
+
+    it('should return 400 if github_repo is missing', async () => {
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-1/project/completion')
+        .query({ github_owner: 'owner' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Missing required query parameters: github_owner, github_repo');
+    });
+
+    it('should return 404 if swarm not found', async () => {
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findById as jest.Mock).mockResolvedValue(null);
+
+      const response = await request(app)
+        .get('/api/v1/swarms/nonexistent/project/completion')
+        .query({ github_owner: 'owner', github_repo: 'repo' })
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Swarm not found');
+    });
+
+    it('should handle service errors gracefully', async () => {
+      const mockSwarm = { swarm_id: 'swarm-1', name: 'Test', status: 'online' };
+
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findById as jest.Mock).mockResolvedValue(mockSwarm);
+      (ProjectCompletionService.getProjectCompletion as jest.Mock).mockRejectedValue(
+        new Error('GitHub API rate limit exceeded')
+      );
+
+      const response = await request(app)
+        .get('/api/v1/swarms/swarm-1/project/completion')
+        .query({ github_owner: 'owner', github_repo: 'repo' })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('GitHub API rate limit exceeded');
+    });
+
+    it('should pass github_token to service if provided', async () => {
+      const mockSwarm = { swarm_id: 'swarm-1', name: 'Test', status: 'online' };
+      const mockData = { completion_percentage: 50, total_issues: 10, completed_issues: 5 };
+
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findById as jest.Mock).mockResolvedValue(mockSwarm);
+      (ProjectCompletionService.getProjectCompletion as jest.Mock).mockResolvedValue(mockData);
+
+      await request(app)
+        .get('/api/v1/swarms/swarm-1/project/completion')
+        .query({ github_owner: 'owner', github_repo: 'repo', github_token: 'secret-token' })
+        .expect(200);
+
+      expect(ProjectCompletionService.getProjectCompletion).toHaveBeenCalledWith(
+        'swarm-1',
+        'owner',
+        'repo',
+        'secret-token'
+      );
     });
   });
 });

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { SwarmModel } from '../models/SwarmModel';
 import { cache } from '../services/cacheService';
 import { CreateSwarmParams } from '../types/swarm';
+import { ProjectCompletionService } from '../services/projectCompletionService';
 
 const router = Router();
 
@@ -463,6 +464,71 @@ router.post('/swarms/refresh', (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to refresh cache',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/:swarm_id/project/completion
+ * Get project completion percentage and detailed breakdown
+ * Includes velocity trends, intervention flags, and estimated completion
+ * Used by mobile app Project Completion UI (Issue #21)
+ */
+router.get('/swarms/:swarm_id/project/completion', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const { github_owner, github_repo, github_token } = req.query;
+
+    // Validation
+    if (!github_owner || !github_repo) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required query parameters: github_owner, github_repo',
+      });
+    }
+
+    const cacheKey = `swarm:${swarm_id}:completion:${github_owner}/${github_repo}`;
+
+    // Check cache first (15s TTL for real-time feel)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Check if swarm exists
+    const swarm = await SwarmModel.findById(swarm_id);
+    if (!swarm) {
+      return res.status(404).json({
+        success: false,
+        error: 'Swarm not found',
+      });
+    }
+
+    // Get project completion data
+    const completionData = await ProjectCompletionService.getProjectCompletion(
+      swarm_id,
+      github_owner as string,
+      github_repo as string,
+      github_token as string | undefined
+    );
+
+    // Cache for 15 seconds
+    cache.set(cacheKey, completionData, 15000);
+
+    res.json({
+      success: true,
+      data: completionData,
+      cached: false,
+    });
+  } catch (error: any) {
+    console.error('Error fetching project completion:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch project completion',
     });
   }
 });
