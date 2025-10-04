@@ -15,35 +15,55 @@ The application uses Helmet.js to set secure HTTP headers:
 - **X-XSS-Protection**: Enables XSS filtering
 - **Strict-Transport-Security**: Enforces HTTPS
 
-### 2. Rate Limiting
+### 2. API Key Authentication
 
-Rate limiting middleware is available in `src/middleware/rateLimiter.ts`:
+API key authentication is implemented via the `X-API-Key` header:
+
+- All API endpoints (except `/health`) require authentication
+- API keys validated via `authenticateApiKey` middleware
+- Configured via `API_KEY_SECRET` environment variable
+- Returns 401 Unauthorized for missing/invalid keys
+
+**Usage:**
+```bash
+curl -H "X-API-Key: your-api-key" https://api.example.com/api/v1/swarms
+```
+
+### 3. Rate Limiting
+
+Rate limiting middleware is applied to all API routes via `src/middleware/rateLimiter.ts`:
 
 - **General Limiter**: 100 requests per 15 minutes per IP
+- Applied to all `/api/*` routes
+- Returns 429 Too Many Requests when limit exceeded
+- Includes rate limit headers in all responses
+
+**Planned Rate Limiters** (not yet implemented):
 - **Strict Limiter**: 20 requests per 15 minutes per IP (for write operations)
 - **Command Limiter**: 10 command executions per 5 minutes per IP
 - **Auth Limiter**: 5 authentication attempts per 15 minutes per IP
 
-### 3. Command Whitelisting
+### 4. Command Whitelisting
 
 Only pre-approved commands can be executed on remote hosts (Issue #13):
 - Whitelisted commands defined in `remoteCommandService`
 - Command validation before execution
 - Audit logging for all command executions
 
-### 4. SSH Security
+### 5. SSH Security
 
 - SSH key-based authentication only
 - Connection pooling with proper cleanup
 - Host status monitoring
 - Automated connection management
 
-### 5. Input Validation
+### 6. Input Validation
 
 - URL validation for swarm registration
-- Parameter sanitization
-- SQL injection prevention through parameterized queries
+- Parameter sanitization via express-validator
+- SQL injection prevention through parameterized queries (using `pg` library)
 - Size limits on request payloads
+- JSON parsing with error handling
 
 ## Security Recommendations
 
@@ -59,27 +79,35 @@ Only pre-approved commands can be executed on remote hosts (Issue #13):
 ### Environment Variables
 
 ```bash
+# API Security
+API_KEY_SECRET=your-secure-api-key-here
+
 # Database
 DATABASE_URL=postgresql://user:password@host:port/database
 
-# SSH Configuration
-SSH_KEY_PATH=/path/to/ssh/keys
+# SSH Configuration (stored in database, not environment)
+# SSH keys are stored encrypted in the hosts table
 
-# CORS
+# CORS (configured in app.ts)
 CORS_ORIGIN=https://your-domain.com
+
+# Optional: Discord Webhooks
+DISCORD_COMMIT_CHANNEL=https://discord.com/api/webhooks/...
+DISCORD_RELEASE_CHANNEL=https://discord.com/api/webhooks/...
 ```
 
 ## Security Checklist
 
 - [x] Security headers (Helmet.js)
-- [x] Rate limiting middleware created
+- [x] Rate limiting middleware created and applied
 - [x] Command whitelisting
 - [x] SSH key-based authentication
 - [x] Audit logging
 - [x] Input validation
-- [ ] Authentication/Authorization (Issue #18)
-- [ ] Penetration testing (Issue #18)
-- [ ] Production hardening (Issue #18)
+- [x] API Key Authentication (Issue #18) ✅
+- [x] Rate limiting applied to all routes (Issue #18) ✅
+- [ ] Penetration testing
+- [ ] Production hardening
 
 ## Vulnerability Reporting
 

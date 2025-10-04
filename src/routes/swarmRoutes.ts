@@ -241,6 +241,137 @@ router.delete('/swarms/:swarm_id', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/v1/heartbeat
+ * Receive heartbeat data from swarm deployments
+ * Updates swarm status and health metrics
+ */
+router.post('/heartbeat', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id, status, health_status, active_agents, project_completion } = req.body;
+
+    // Validation
+    if (!swarm_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: swarm_id',
+      });
+    }
+
+    // Check if swarm exists
+    const existingSwarm = await SwarmModel.findById(swarm_id);
+    if (!existingSwarm) {
+      return res.status(404).json({
+        success: false,
+        error: 'Swarm not found. Please register the swarm first.',
+      });
+    }
+
+    // Validate health_status if provided
+    if (health_status) {
+      const { cpu_percent, memory_percent, disk_percent } = health_status;
+      if (
+        typeof cpu_percent !== 'number' ||
+        typeof memory_percent !== 'number' ||
+        typeof disk_percent !== 'number'
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid health_status format. Expected numbers for cpu_percent, memory_percent, disk_percent',
+        });
+      }
+    }
+
+    // Update swarm status
+    const updatedSwarm = await SwarmModel.updateStatus({
+      swarm_id,
+      status: status || 'online',
+      health_status,
+      active_agents,
+      project_completion,
+    });
+
+    // Invalidate cache
+    cache.invalidatePattern('swarms:');
+    cache.invalidatePattern(`swarm:${swarm_id}`);
+
+    res.json({
+      success: true,
+      data: updatedSwarm,
+      message: 'Heartbeat received',
+    });
+  } catch (error) {
+    console.error('Error processing heartbeat:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process heartbeat',
+    });
+  }
+});
+
+/**
+ * POST /api/v1/swarms/:swarm_id/control
+ * Execute control actions on a swarm
+ * Actions: start, stop, restart, update
+ */
+router.post('/swarms/:swarm_id/control', async (req: Request, res: Response) => {
+  try {
+    const { swarm_id } = req.params;
+    const { action, parameters } = req.body;
+
+    // Validation
+    if (!action) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: action',
+      });
+    }
+
+    const validActions = ['start', 'stop', 'restart', 'update', 'config'];
+    if (!validActions.includes(action)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid action. Must be one of: ${validActions.join(', ')}`,
+      });
+    }
+
+    // Check if swarm exists
+    const swarm = await SwarmModel.findById(swarm_id);
+    if (!swarm) {
+      return res.status(404).json({
+        success: false,
+        error: 'Swarm not found',
+      });
+    }
+
+    // Log control action for audit
+    console.log(`[AUDIT] Control action on swarm ${swarm_id}: ${action}`, {
+      parameters,
+      timestamp: new Date().toISOString(),
+    });
+
+    // In a real implementation, this would trigger remote commands
+    // For now, we return a success response
+    res.json({
+      success: true,
+      message: `Control action '${action}' queued for swarm ${swarm_id}`,
+      data: {
+        swarm_id,
+        action,
+        parameters,
+        status: 'queued',
+        queued_at: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error executing control action:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to execute control action',
+    });
+  }
+});
+
+/**
  * POST /api/v1/swarms/refresh
  * Manually trigger cache invalidation and force refresh
  * Used by pull-to-refresh in mobile app

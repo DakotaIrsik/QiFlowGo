@@ -1,7 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { HostModel } from '../models/HostModel';
-import { remoteCommandService } from '../services/remoteCommandService';
-import { sshConnectionPool } from '../services/sshConnectionPool';
+import { hostService } from '../services/hostService';
 
 const router = Router();
 
@@ -11,7 +9,7 @@ const router = Router();
  */
 router.get('/hosts', async (req: Request, res: Response) => {
   try {
-    const hosts = await HostModel.findAll();
+    const hosts = await hostService.getAllHosts();
 
     res.json({
       success: true,
@@ -32,7 +30,7 @@ router.get('/hosts', async (req: Request, res: Response) => {
  */
 router.get('/hosts/available', async (req: Request, res: Response) => {
   try {
-    const hosts = await HostModel.findAvailable();
+    const hosts = await hostService.getAvailableHosts();
 
     res.json({
       success: true,
@@ -54,7 +52,7 @@ router.get('/hosts/available', async (req: Request, res: Response) => {
 router.get('/hosts/:host_id', async (req: Request, res: Response) => {
   try {
     const { host_id } = req.params;
-    const host = await HostModel.findById(host_id);
+    const host = await hostService.getHostById(host_id);
 
     if (!host) {
       return res.status(404).json({
@@ -82,12 +80,12 @@ router.get('/hosts/:host_id', async (req: Request, res: Response) => {
  */
 router.post('/hosts', async (req: Request, res: Response) => {
   try {
-    const { host_id, name, hostname, port, username, os_type, ssh_key_path, capacity_max_swarms, metadata } = req.body;
+    const { name, hostname, port, username, os_type, ssh_key_path, capacity_max_swarms, metadata } = req.body;
 
-    if (!host_id || !name || !hostname || !username || !os_type) {
+    if (!name || !hostname || !username || !os_type) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: host_id, name, hostname, username, os_type',
+        error: 'Missing required fields: name, hostname, username, os_type',
       });
     }
 
@@ -98,8 +96,7 @@ router.post('/hosts', async (req: Request, res: Response) => {
       });
     }
 
-    const host = await HostModel.create({
-      host_id,
+    const host = await hostService.registerHost({
       name,
       hostname,
       port,
@@ -132,10 +129,7 @@ router.patch('/hosts/:host_id', async (req: Request, res: Response) => {
     const { host_id } = req.params;
     const updates = req.body;
 
-    const host = await HostModel.update({
-      host_id,
-      ...updates,
-    });
+    const host = await hostService.updateHost(host_id, updates);
 
     if (!host) {
       return res.status(404).json({
@@ -164,7 +158,7 @@ router.patch('/hosts/:host_id', async (req: Request, res: Response) => {
 router.delete('/hosts/:host_id', async (req: Request, res: Response) => {
   try {
     const { host_id } = req.params;
-    const deleted = await HostModel.delete(host_id);
+    const deleted = await hostService.removeHost(host_id);
 
     if (!deleted) {
       return res.status(404).json({
@@ -172,9 +166,6 @@ router.delete('/hosts/:host_id', async (req: Request, res: Response) => {
         error: 'Host not found',
       });
     }
-
-    // Close any open SSH connections
-    await sshConnectionPool.closeConnection(host_id);
 
     res.json({
       success: true,
@@ -190,51 +181,47 @@ router.delete('/hosts/:host_id', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/v1/hosts/:host_id/test-connection
- * Test SSH connection to a host
+ * GET /api/v1/hosts/:host_id/health
+ * Check host health and connectivity
  */
-router.post('/hosts/:host_id/test-connection', async (req: Request, res: Response) => {
+router.get('/hosts/:host_id/health', async (req: Request, res: Response) => {
   try {
     const { host_id } = req.params;
-    const isConnected = await sshConnectionPool.testConnection(host_id);
-
-    if (isConnected) {
-      await HostModel.updateLastSeen(host_id, 'online');
-    }
+    const health = await hostService.checkHostHealth(host_id);
 
     res.json({
       success: true,
       data: {
         host_id,
-        connected: isConnected,
+        ...health,
       },
     });
   } catch (error) {
-    console.error('Connection test failed:', error);
+    console.error('Health check failed:', error);
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Connection test failed',
+      error: error instanceof Error ? error.message : 'Health check failed',
     });
   }
 });
 
 /**
- * POST /api/v1/hosts/:host_id/commands/:command_type
+ * POST /api/v1/hosts/:host_id/execute
  * Execute a whitelisted command on a host
  */
-router.post('/hosts/:host_id/commands/:command_type', async (req: Request, res: Response) => {
+router.post('/hosts/:host_id/execute', async (req: Request, res: Response) => {
   try {
-    const { host_id, command_type } = req.params;
-    const { input, executed_by } = req.body;
+    const { host_id } = req.params;
+    const { command_type, input, executed_by } = req.body;
 
-    if (!remoteCommandService.isCommandWhitelisted(command_type)) {
+    if (!command_type) {
       return res.status(400).json({
         success: false,
-        error: `Command type '${command_type}' is not whitelisted`,
+        error: 'Missing required field: command_type',
       });
     }
 
-    const result = await remoteCommandService.executeCommand(host_id, command_type, {
+    const result = await hostService.executeCommand(host_id, command_type, {
       input,
       executed_by,
     });
@@ -261,7 +248,7 @@ router.get('/hosts/:host_id/audit-logs', async (req: Request, res: Response) => 
     const { host_id } = req.params;
     const limit = parseInt(req.query.limit as string) || 100;
 
-    const logs = await HostModel.getAuditLogs(host_id, limit);
+    const logs = await hostService.getAuditLogs(host_id, limit);
 
     res.json({
       success: true,
@@ -283,22 +270,14 @@ router.get('/hosts/:host_id/audit-logs', async (req: Request, res: Response) => 
 router.get('/hosts/:host_id/available-commands', async (req: Request, res: Response) => {
   try {
     const { host_id } = req.params;
-    const host = await HostModel.findById(host_id);
-
-    if (!host) {
-      return res.status(404).json({
-        success: false,
-        error: 'Host not found',
-      });
-    }
-
-    const commands = remoteCommandService.getAvailableCommands(host.os_type);
+    const commands = await hostService.getAvailableCommands(host_id);
+    const host = await hostService.getHostById(host_id);
 
     res.json({
       success: true,
       data: {
         host_id,
-        os_type: host.os_type,
+        os_type: host?.os_type,
         available_commands: commands,
       },
     });

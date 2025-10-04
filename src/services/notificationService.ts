@@ -6,6 +6,26 @@ import { InterventionFlag } from '../types/interventionFlag';
  */
 export class NotificationService {
   /**
+   * Send a generic push notification
+   */
+  static async sendNotification(notification: {
+    title: string;
+    message: string;
+    data?: any;
+  }): Promise<void> {
+    console.log('[NotificationService] Sending notification:', notification);
+
+    // TODO: Integrate with actual push notification service (Firebase, etc.)
+    // For now, log the notification
+    // Example integration points:
+    // - Firebase Cloud Messaging (FCM)
+    // - Apple Push Notification Service (APNS)
+    // - WebSocket for real-time updates
+    // - Email notifications
+    // - Slack/Discord webhooks
+  }
+
+  /**
    * Send push notification for a new intervention flag
    */
   static async sendInterventionNotification(flag: InterventionFlag): Promise<void> {
