@@ -1,5 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { SwarmModel } from '../models/SwarmModel';
+import { hostService } from './hostService';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface ActivityFeedItem {
   id: string;
@@ -65,6 +67,36 @@ export interface IssueBoardItem {
   updated_at: string;
   url: string;
 }
+
+export interface SSHConnectionDetails {
+  hostname: string;
+  port: number;
+  username: string;
+  auth_type: 'key' | 'password';
+  key_path?: string;
+  has_password: boolean;
+  os_type: string;
+}
+
+export interface SSHCommand {
+  command: string;
+  copyable_text: string;
+  deep_link_ios?: string;
+  deep_link_android?: string;
+}
+
+export interface SSHProfile {
+  profile_id: string;
+  profile_name: string;
+  ssh_client?: string;
+  custom_port?: number;
+  custom_username?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// In-memory storage for SSH profiles (replace with database in production)
+const sshProfiles: Map<string, SSHProfile[]> = new Map();
 
 export class SwarmDetailService {
   /**
@@ -335,5 +367,152 @@ export class SwarmDetailService {
     } catch (error: any) {
       throw new Error(`Failed to fetch issue board: ${error.message}`);
     }
+  }
+
+  /**
+   * Get SSH connection details for a swarm's host
+   * Used by mobile app SSH Quick Connect (Issue #10)
+   */
+  static async getSSHConnectionDetails(swarm_id: string): Promise<SSHConnectionDetails> {
+    const swarm = await SwarmModel.findById(swarm_id);
+
+    if (!swarm) {
+      throw new Error('Swarm not found');
+    }
+
+    // Extract hostname from host_url
+    const hostUrl = new URL(swarm.host_url);
+    const hostname = hostUrl.hostname;
+
+    // Try to get host details from host service
+    // This assumes the swarm's host_url hostname matches a registered host
+    const hosts = await hostService.getAllHosts();
+    const matchingHost = hosts.find(h => h.hostname === hostname);
+
+    if (matchingHost) {
+      return {
+        hostname: matchingHost.hostname,
+        port: matchingHost.port || 22,
+        username: matchingHost.username,
+        auth_type: matchingHost.ssh_key_path ? 'key' : 'password',
+        key_path: matchingHost.ssh_key_path,
+        has_password: !matchingHost.ssh_key_path,
+        os_type: matchingHost.os_type,
+      };
+    }
+
+    // Fallback: return basic connection info from host_url
+    return {
+      hostname,
+      port: parseInt(hostUrl.port) || 22,
+      username: 'root', // Default username
+      auth_type: 'password',
+      has_password: true,
+      os_type: 'linux',
+    };
+  }
+
+  /**
+   * Get formatted SSH command for a swarm
+   * Used by mobile app SSH Quick Connect (Issue #10)
+   */
+  static async getSSHCommand(swarm_id: string, use_key: boolean = false): Promise<SSHCommand> {
+    const connectionDetails = await this.getSSHConnectionDetails(swarm_id);
+
+    let command = `ssh ${connectionDetails.username}@${connectionDetails.hostname}`;
+
+    if (connectionDetails.port !== 22) {
+      command += ` -p ${connectionDetails.port}`;
+    }
+
+    if (use_key && connectionDetails.key_path) {
+      command += ` -i ${connectionDetails.key_path}`;
+    }
+
+    // Generate deep links for mobile SSH clients
+    const deep_link_ios = `termius://host/${connectionDetails.hostname}?port=${connectionDetails.port}&user=${connectionDetails.username}`;
+    const deep_link_android = `jssh://${connectionDetails.username}@${connectionDetails.hostname}:${connectionDetails.port}`;
+
+    return {
+      command,
+      copyable_text: command,
+      deep_link_ios,
+      deep_link_android,
+    };
+  }
+
+  /**
+   * Get SSH profiles for a swarm
+   * Used by mobile app SSH Quick Connect (Issue #10)
+   */
+  static async getSSHProfiles(swarm_id: string): Promise<SSHProfile[]> {
+    const swarm = await SwarmModel.findById(swarm_id);
+
+    if (!swarm) {
+      throw new Error('Swarm not found');
+    }
+
+    // Get profiles from in-memory storage (replace with database)
+    return sshProfiles.get(swarm_id) || [];
+  }
+
+  /**
+   * Save SSH profile for a swarm
+   * Used by mobile app SSH Quick Connect (Issue #10)
+   */
+  static async saveSSHProfile(
+    swarm_id: string,
+    profileData: {
+      profile_name: string;
+      ssh_client?: string;
+      custom_port?: number;
+      custom_username?: string;
+    }
+  ): Promise<SSHProfile> {
+    const swarm = await SwarmModel.findById(swarm_id);
+
+    if (!swarm) {
+      throw new Error('Swarm not found');
+    }
+
+    const profile: SSHProfile = {
+      profile_id: uuidv4(),
+      profile_name: profileData.profile_name,
+      ssh_client: profileData.ssh_client,
+      custom_port: profileData.custom_port,
+      custom_username: profileData.custom_username,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Store in in-memory storage (replace with database)
+    const existingProfiles = sshProfiles.get(swarm_id) || [];
+    existingProfiles.push(profile);
+    sshProfiles.set(swarm_id, existingProfiles);
+
+    return profile;
+  }
+
+  /**
+   * Delete SSH profile
+   * Used by mobile app SSH Quick Connect (Issue #10)
+   */
+  static async deleteSSHProfile(swarm_id: string, profile_id: string): Promise<boolean> {
+    const swarm = await SwarmModel.findById(swarm_id);
+
+    if (!swarm) {
+      throw new Error('Swarm not found');
+    }
+
+    // Delete from in-memory storage (replace with database)
+    const existingProfiles = sshProfiles.get(swarm_id) || [];
+    const filteredProfiles = existingProfiles.filter(p => p.profile_id !== profile_id);
+
+    if (existingProfiles.length === filteredProfiles.length) {
+      return false; // Profile not found
+    }
+
+    sshProfiles.set(swarm_id, filteredProfiles);
+    return true;
   }
 }
