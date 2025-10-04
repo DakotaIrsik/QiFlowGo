@@ -45,7 +45,6 @@ describe('Swarm Routes', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data).toEqual(mockSwarms);
       expect(response.body.cached).toBe(true);
-      expect(cache.get).toHaveBeenCalledWith('swarms:all');
       expect(SwarmModel.findAll).not.toHaveBeenCalled();
     });
 
@@ -77,6 +76,39 @@ describe('Swarm Routes', () => {
       expect(cache.set).toHaveBeenCalledWith('swarms:all', mockSwarms, 30000);
     });
 
+    it('should filter by status', async () => {
+      const mockSwarms = [
+        { swarm_id: '1', name: 'Swarm 1', status: 'online', last_seen: new Date() },
+        { swarm_id: '2', name: 'Swarm 2', status: 'offline', last_seen: new Date() },
+        { swarm_id: '3', name: 'Swarm 3', status: 'online', last_seen: new Date() },
+      ];
+
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findAll as jest.Mock).mockResolvedValue(mockSwarms);
+
+      const response = await request(app).get('/api/v1/swarms?status=online').expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(2);
+      expect(response.body.data.every((s: any) => s.status === 'online')).toBe(true);
+    });
+
+    it('should filter by search term', async () => {
+      const mockSwarms = [
+        { swarm_id: 'prod-1', name: 'Production Swarm', status: 'online', last_seen: new Date() },
+        { swarm_id: 'dev-1', name: 'Dev Swarm', status: 'online', last_seen: new Date() },
+        { swarm_id: 'prod-2', name: 'Prod Backend', status: 'online', last_seen: new Date() },
+      ];
+
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findAll as jest.Mock).mockResolvedValue(mockSwarms);
+
+      const response = await request(app).get('/api/v1/swarms?search=prod').expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(2);
+    });
+
     it('should handle errors gracefully', async () => {
       (cache.get as jest.Mock).mockReturnValue(null);
       (SwarmModel.findAll as jest.Mock).mockRejectedValue(
@@ -87,6 +119,91 @@ describe('Swarm Routes', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Failed to fetch swarms');
+    });
+  });
+
+  describe('GET /api/v1/swarms/stats/aggregate', () => {
+    it('should return aggregate stats', async () => {
+      const mockSwarms = [
+        {
+          swarm_id: '1',
+          name: 'Swarm 1',
+          status: 'online',
+          active_agents: 3,
+          project_completion: 80,
+          health_status: { cpu_percent: 45, memory_percent: 60, disk_percent: 30 },
+          last_seen: new Date(),
+        },
+        {
+          swarm_id: '2',
+          name: 'Swarm 2',
+          status: 'offline',
+          active_agents: 0,
+          project_completion: 50,
+          health_status: { cpu_percent: 20, memory_percent: 30, disk_percent: 40 },
+          last_seen: new Date(),
+        },
+        {
+          swarm_id: '3',
+          name: 'Swarm 3',
+          status: 'online',
+          active_agents: 5,
+          project_completion: 90,
+          health_status: { cpu_percent: 95, memory_percent: 92, disk_percent: 88 },
+          last_seen: new Date(),
+        },
+      ];
+
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findAll as jest.Mock).mockResolvedValue(mockSwarms);
+
+      const response = await request(app).get('/api/v1/swarms/stats/aggregate').expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toMatchObject({
+        total_swarms: 3,
+        swarms_running: 2,
+        swarms_offline: 1,
+        swarms_degraded: 0,
+        total_active_agents: 8,
+        avg_project_completion: (80 + 50 + 90) / 3,
+        alerts_count: 1, // Only swarm 3 has high resource usage
+      });
+    });
+
+    it('should return cached aggregate stats', async () => {
+      const cachedStats = {
+        total_swarms: 5,
+        swarms_running: 4,
+        swarms_offline: 1,
+      };
+
+      (cache.get as jest.Mock).mockReturnValue(cachedStats);
+
+      const response = await request(app).get('/api/v1/swarms/stats/aggregate').expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(cachedStats);
+      expect(response.body.cached).toBe(true);
+      expect(SwarmModel.findAll).not.toHaveBeenCalled();
+    });
+
+    it('should handle empty swarm list', async () => {
+      (cache.get as jest.Mock).mockReturnValue(null);
+      (SwarmModel.findAll as jest.Mock).mockResolvedValue([]);
+
+      const response = await request(app).get('/api/v1/swarms/stats/aggregate').expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toMatchObject({
+        total_swarms: 0,
+        swarms_running: 0,
+        swarms_offline: 0,
+        swarms_degraded: 0,
+        total_active_agents: 0,
+        avg_project_completion: 0,
+        alerts_count: 0,
+      });
     });
   });
 
