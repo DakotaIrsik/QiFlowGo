@@ -1,5 +1,21 @@
 [
   {
+    "number": 999008,
+    "title": "Issue #8: Mobile - Push Notifications & Alerts",
+    "headRefName": "feature/issue-8",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
+    "number": 999007,
+    "title": "Issue #7: Mobile - Swarm Detail View",
+    "headRefName": "feature/issue-7",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
     "number": 999006,
     "title": "Issue #6: Mobile - Dashboard (Fleet Overview)",
     "headRefName": "feature/issue-6-dashboard",
