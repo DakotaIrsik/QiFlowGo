@@ -1,5 +1,45 @@
 [
   {
+    "number": 999048,
+    "title": "Issue #48: Add missing test coverage for middleware and services",
+    "headRefName": "feature/issue-48",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
+    "number": 999021,
+    "title": "Issue #21: Mobile - Project Completion Percentage UI",
+    "headRefName": "feature/issue-21",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
+    "number": 999018,
+    "title": "Issue #18: Security - Penetration Testing & Audit",
+    "headRefName": "feature/issue-18",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
+    "number": 999017,
+    "title": "Issue #17: Feature - Multi-Swarm Batch Operations",
+    "headRefName": "feature/issue-17",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
+    "number": 999011,
+    "title": "Issue #11: Mobile - Customer & Project Management",
+    "headRefName": "feature/issue-11",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
+  },
+  {
     "number": 999008,
     "title": "Issue #8: Mobile - Push Notifications & Alerts",
     "headRefName": "feature/issue-8",
@@ -449,6 +489,14 @@
       }
     ],
     "title": "Implement security middleware for authentication and rate limiting (Issue #18)"
+  },
+  {
+    "number": 999003,
+    "title": "Issue #3: Backend - Monitoring API Service",
+    "headRefName": "feature/issue-3",
+    "state": "OPEN",
+    "isDraft": false,
+    "statusCheckRollup": null
   },
   {
     "number": 999001,
