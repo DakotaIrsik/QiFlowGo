@@ -10,6 +10,7 @@ import hostRoutes from './routes/hostRoutes';
 import authRoutes from './routes/authRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import batchOperationsRoutes from './routes/batchOperationsRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 import { swarmPollingService } from './services/swarmPollingService';
 import { generalLimiter } from './middleware/rateLimiter';
 import { authenticateApiKey } from './middleware/auth';
@@ -61,6 +62,7 @@ app.use('/api/v1/deployments', deploymentRoutes);
 app.use('/api/v1/hosts', hostRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1', batchOperationsRoutes);
+app.use('/api/v1', analyticsRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
