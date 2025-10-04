@@ -9,10 +9,12 @@ const router = Router();
  * GET /api/v1/swarms
  * List all swarms with basic status (30s cache TTL)
  * Used by mobile app dashboard with 30s polling
+ * Query params: customer, status, host_type, priority, search
  */
 router.get('/swarms', async (req: Request, res: Response) => {
   try {
-    const cacheKey = 'swarms:all';
+    const { customer, status, host_type, priority, search } = req.query;
+    const cacheKey = `swarms:all:${JSON.stringify(req.query)}`;
 
     // Check cache first
     const cached = cache.get(cacheKey);
@@ -24,8 +26,22 @@ router.get('/swarms', async (req: Request, res: Response) => {
       });
     }
 
-    // Fetch from database
-    const swarms = await SwarmModel.findAll();
+    // Fetch from database with filters
+    let swarms = await SwarmModel.findAll();
+
+    // Apply filters
+    if (status && typeof status === 'string') {
+      swarms = swarms.filter((s) => s.status === status);
+    }
+
+    if (search && typeof search === 'string') {
+      const searchLower = search.toLowerCase();
+      swarms = swarms.filter(
+        (s) =>
+          s.name.toLowerCase().includes(searchLower) ||
+          s.swarm_id.toLowerCase().includes(searchLower)
+      );
+    }
 
     // Cache for 30 seconds
     cache.set(cacheKey, swarms, 30000);
@@ -40,6 +56,63 @@ router.get('/swarms', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch swarms',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/stats/aggregate
+ * Get aggregate statistics across all swarms
+ * Used by mobile app dashboard
+ */
+router.get('/swarms/stats/aggregate', async (req: Request, res: Response) => {
+  try {
+    const cacheKey = 'swarms:stats:aggregate';
+
+    // Check cache first
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        cached: true,
+      });
+    }
+
+    // Fetch all swarms
+    const swarms = await SwarmModel.findAll();
+
+    // Calculate aggregate stats
+    const stats = {
+      total_swarms: swarms.length,
+      swarms_running: swarms.filter((s) => s.status === 'online').length,
+      swarms_offline: swarms.filter((s) => s.status === 'offline').length,
+      swarms_degraded: swarms.filter((s) => s.status === 'degraded').length,
+      total_active_agents: swarms.reduce((sum, s) => sum + (s.active_agents || 0), 0),
+      avg_project_completion: swarms.length > 0
+        ? swarms.reduce((sum, s) => sum + (s.project_completion || 0), 0) / swarms.length
+        : 0,
+      alerts_count: swarms.filter(
+        (s) =>
+          s.health_status?.cpu_percent > 90 ||
+          s.health_status?.memory_percent > 90 ||
+          s.health_status?.disk_percent > 90
+      ).length,
+    };
+
+    // Cache for 30 seconds
+    cache.set(cacheKey, stats, 30000);
+
+    res.json({
+      success: true,
+      data: stats,
+      cached: false,
+    });
+  } catch (error) {
+    console.error('Error fetching aggregate stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch aggregate stats',
     });
   }
 });
