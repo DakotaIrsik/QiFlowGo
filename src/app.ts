@@ -8,6 +8,7 @@ import velocityRoutes from './routes/velocityRoutes';
 import deploymentRoutes from './routes/deploymentRoutes';
 import hostRoutes from './routes/hostRoutes';
 import authRoutes from './routes/authRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 import { swarmPollingService } from './services/swarmPollingService';
 import { generalLimiter } from './middleware/rateLimiter';
 import { authenticateApiKey } from './middleware/auth';
@@ -57,6 +58,7 @@ app.use('/api/v1/swarms', swarmRoutes);
 app.use('/api/v1/velocity', velocityRoutes);
 app.use('/api/v1/deployments', deploymentRoutes);
 app.use('/api/v1/hosts', hostRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

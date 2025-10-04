@@ -1,14 +1,47 @@
-import { NotificationService } from './notificationService';
+import { NotificationService, AlertType, AlertEvent } from './notificationService';
+import * as admin from 'firebase-admin';
+
+// Mock firebase-admin
+jest.mock('firebase-admin', () => ({
+  apps: [],
+  messaging: jest.fn(() => ({
+    send: jest.fn(),
+    sendEachForMulticast: jest.fn(),
+    subscribeToTopic: jest.fn(),
+    unsubscribeFromTopic: jest.fn(),
+  })),
+}));
 
 describe('NotificationService', () => {
   let consoleLogSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
+  describe('sendNotification', () => {
+    it('should log notification when Firebase is not initialized', async () => {
+      await NotificationService.sendNotification({
+        title: 'Test',
+        message: 'Test message',
+        data: { test: 'data' },
+      });
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[NotificationService] Sending notification:',
+        expect.objectContaining({
+          title: 'Test',
+          message: 'Test message',
+        })
+      );
+    });
   });
 
   describe('sendInterventionNotification', () => {
@@ -29,15 +62,15 @@ describe('NotificationService', () => {
       expect(consoleLogSpy).toHaveBeenCalledWith(
         '[NotificationService] Sending notification:',
         expect.objectContaining({
-          swarm_id: 'test-swarm',
           title: '🔴 Critical: Human Intervention Required',
-          body: 'Issue #123: Agent failed 3 consecutive times',
-          priority: 'high',
+          message: 'Issue #123: Agent failed 3 consecutive times',
           data: expect.objectContaining({
             type: 'intervention',
-            flag_id: 1,
-            issue_number: 123,
+            flag_id: '1',
+            issue_number: '123',
+            swarm_id: 'test-swarm',
           }),
+          topic: 'swarm_test-swarm',
         })
       );
     });
@@ -59,7 +92,66 @@ describe('NotificationService', () => {
         '[NotificationService] Sending notification:',
         expect.objectContaining({
           title: '🟡 Review Needed',
-          priority: 'normal',
+          message: 'Issue #456: Test failure rate: 15.0%',
+        })
+      );
+    });
+  });
+
+  describe('sendAlertNotification', () => {
+    it('should send critical alert', async () => {
+      await NotificationService.sendAlertNotification(
+        'test-swarm',
+        AlertType.CRITICAL,
+        AlertEvent.SWARM_OFFLINE,
+        'Swarm has gone offline'
+      );
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[NotificationService] Sending notification:',
+        expect.objectContaining({
+          title: '🔴 Critical Alert',
+          message: 'Swarm has gone offline',
+          data: expect.objectContaining({
+            type: 'alert',
+            swarm_id: 'test-swarm',
+            alert_type: AlertType.CRITICAL,
+            alert_event: AlertEvent.SWARM_OFFLINE,
+          }),
+        })
+      );
+    });
+
+    it('should send warning alert', async () => {
+      await NotificationService.sendAlertNotification(
+        'test-swarm',
+        AlertType.WARNING,
+        AlertEvent.HIGH_RESOURCE_USAGE,
+        'CPU usage at 85%'
+      );
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[NotificationService] Sending notification:',
+        expect.objectContaining({
+          title: '⚠️ Warning',
+          message: 'CPU usage at 85%',
+        })
+      );
+    });
+
+    it('should send info alert', async () => {
+      await NotificationService.sendAlertNotification(
+        'test-swarm',
+        AlertType.INFO,
+        AlertEvent.PR_MERGED,
+        'PR #42 merged successfully'
+      );
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[NotificationService] Sending notification:',
+        expect.objectContaining({
+          title: 'ℹ️ Info',
+          message: 'PR #42 merged successfully',
         })
       );
     });
@@ -70,11 +162,15 @@ describe('NotificationService', () => {
       await NotificationService.sendBulkResolveNotification('test-swarm', 5, 'admin@test.com');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[NotificationService] Sending bulk resolve notification:',
+        '[NotificationService] Sending notification:',
         expect.objectContaining({
-          swarm_id: 'test-swarm',
           title: '✅ Interventions Resolved',
-          body: 'admin@test.com resolved 5 intervention flag(s)',
+          message: 'admin@test.com resolved 5 intervention flag(s)',
+          data: expect.objectContaining({
+            type: 'bulk_resolve',
+            swarm_id: 'test-swarm',
+            resolved_count: '5',
+          }),
         })
       );
     });
@@ -85,13 +181,33 @@ describe('NotificationService', () => {
       await NotificationService.sendStatusChangeNotification('test-swarm', 123, 'in_progress', 'blocked');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[NotificationService] Sending status change notification:',
+        '[NotificationService] Sending notification:',
         expect.objectContaining({
-          swarm_id: 'test-swarm',
           title: 'Issue Status Changed',
-          body: 'Issue #123: in_progress → blocked',
+          message: 'Issue #123: in_progress → blocked',
+          data: expect.objectContaining({
+            type: 'status_change',
+            swarm_id: 'test-swarm',
+            issue_number: '123',
+          }),
         })
       );
+    });
+  });
+
+  describe('subscribeToSwarm', () => {
+    it('should handle subscription when Firebase not initialized', async () => {
+      await NotificationService.subscribeToSwarm('test-token', 'test-swarm');
+      // Should not throw and not call Firebase
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unsubscribeFromSwarm', () => {
+    it('should handle unsubscription when Firebase not initialized', async () => {
+      await NotificationService.unsubscribeFromSwarm('test-token', 'test-swarm');
+      // Should not throw and not call Firebase
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
 });
