@@ -7,13 +7,22 @@ import swarmRoutes from './routes/swarmRoutes';
 import velocityRoutes from './routes/velocityRoutes';
 import deploymentRoutes from './routes/deploymentRoutes';
 import hostRoutes from './routes/hostRoutes';
+import authRoutes from './routes/authRoutes';
 import { swarmPollingService } from './services/swarmPollingService';
 import { generalLimiter } from './middleware/rateLimiter';
 import { authenticateApiKey } from './middleware/auth';
+import { firebaseAuthService } from './services/firebaseAuthService';
 
 dotenv.config();
 
 const app: Application = express();
+
+// Initialize Firebase Auth (if configured)
+try {
+  firebaseAuthService.initialize();
+} catch (error) {
+  console.warn('Firebase Auth not initialized:', error);
+}
 
 // Start swarm polling service
 swarmPollingService.start();
@@ -36,15 +45,18 @@ app.get('/health', (req: Request, res: Response) => {
 // Apply rate limiting to all API routes
 app.use('/api', generalLimiter);
 
-// Apply authentication to all API routes
+// Auth routes (public, no API key required)
+app.use('/api/v1/auth', authRoutes);
+
+// Apply authentication to protected API routes
 app.use('/api', authenticateApiKey);
 
-// API routes
-app.use('/api/v1', interventionRoutes);
-app.use('/api/v1', swarmRoutes);
-app.use('/api/v1', velocityRoutes);
-app.use('/api/v1', deploymentRoutes);
-app.use('/api/v1', hostRoutes);
+// Protected API routes
+app.use('/api/v1/interventions', interventionRoutes);
+app.use('/api/v1/swarms', swarmRoutes);
+app.use('/api/v1/velocity', velocityRoutes);
+app.use('/api/v1/deployments', deploymentRoutes);
+app.use('/api/v1/hosts', hostRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

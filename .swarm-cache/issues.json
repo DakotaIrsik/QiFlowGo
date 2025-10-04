@@ -1,0 +1,308 @@
+[
+  {
+    "assignees": [],
+    "body": "## Overview\nAdd comprehensive test coverage for rate limiter middleware and core services.\n\n## Test Files to Add\n- `src/middleware/rateLimiter.test.ts` - Complete rate limiter middleware tests\n- `src/services/deploymentService.test.ts` - Deployment service tests\n- `src/services/sshConnectionPool.test.ts` - SSH connection pool tests\n\n## Acceptance Criteria\n- [ ] All test files committed\n- [ ] Tests pass in CI/CD\n- [ ] Code coverage maintained or improved\n- [ ] No regressions introduced\n\n**Priority:** high",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGmQ",
+        "name": "P3",
+        "description": "Low priority - nice to have",
+        "color": "0e8a16"
+      }
+    ],
+    "number": 48,
+    "state": "OPEN",
+    "title": "Add missing test coverage for middleware and services"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nImplement backend services for managing swarm host machines and executing remote control commands.\n\n## Features\n- Host registration and management\n- Remote SSH command execution\n- Host capacity monitoring and validation\n- Secure credential storage\n- Remote installation and configuration\n\n## API Endpoints\n- POST /api/v1/hosts - Register new host\n- GET /api/v1/hosts - List all registered hosts\n- GET /api/v1/hosts/:host_id - Get host details\n- POST /api/v1/hosts/:host_id/execute - Execute remote command\n- DELETE /api/v1/hosts/:host_id - Remove host\n\n## Requirements\n- SSH key-based authentication\n- Secure credential storage (encrypted in Firebase)\n- Host health checks and capacity validation\n- Remote command execution with timeout handling\n- Audit logging for all remote operations\n- Support for multiple OS types (Ubuntu, Debian, macOS, Windows)\n\n## Acceptance Criteria\n- [ ] All API endpoints implemented and tested\n- [ ] SSH connection pooling and management\n- [ ] Encrypted credential storage in Firebase\n- [ ] Host capacity validation (CPU, memory, disk)\n- [ ] Remote command execution with proper error handling\n- [ ] Timeout handling for long-running commands\n- [ ] Audit log for all host operations\n- [ ] Support for at least Ubuntu and Debian\n- [ ] API documentation with examples\n- [ ] Integration tests with 90%+ coverage\n\n**Priority:** high  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** enhancement  \n**Depends On:** Backend - Monitoring API Service (#3)\n\n**Note:** This issue was created to resolve a missing dependency for issue #14 (Backend - Swarm Deployment Wizard).",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACL9UnuA",
+        "name": "enhancement",
+        "description": "New feature or request",
+        "color": "a2eeef"
+      },
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMDSAmQ",
+        "name": "P1",
+        "description": "High priority - important",
+        "color": "d93f0b"
+      }
+    ],
+    "number": 37,
+    "state": "OPEN",
+    "title": "Backend - Host Management & Remote Control"
+  },
+  {
+    "assignees": [],
+    "body": "Add a feature to post commits and feature requests with notes in this channel. I'll create a gh secret called DISCORD_COMMIT_CHANNEL, DISCORD_RELEASE_CHANNEL,\n\n---\n*Reported by lionsinescanor via Discord*",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACL9UnuA",
+        "name": "enhancement",
+        "description": "New feature or request",
+        "color": "a2eeef"
+      },
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGpw",
+        "name": "P4",
+        "description": "Lowest priority - future consideration",
+        "color": "1d76db"
+      },
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGvQ",
+        "name": "human",
+        "description": "Requires human decision/input",
+        "color": "e99695"
+      }
+    ],
+    "number": 33,
+    "state": "OPEN",
+    "title": "Add a feature to post commits and feature requests with notes in this channel. I'll create a gh secr"
+  },
+  {
+    "assignees": [],
+    "body": "Add a feature to post commits and feature requests with notes in this channel. I'll create a gh secret called DISCORD_COMMIT_CHANNEL, DISCORD_RELEASE_CHANNEL,\n\n---\n*Reported by lionsinescanor via Discord*",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACL9UnuA",
+        "name": "enhancement",
+        "description": "New feature or request",
+        "color": "a2eeef"
+      },
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGpw",
+        "name": "P4",
+        "description": "Lowest priority - future consideration",
+        "color": "1d76db"
+      },
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGvQ",
+        "name": "human",
+        "description": "Requires human decision/input",
+        "color": "e99695"
+      }
+    ],
+    "number": 32,
+    "state": "OPEN",
+    "title": "Add a feature to post commits and feature requests with notes in this channel. I'll create a gh secr"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nImplement prominent project completion percentage cards on dashboard and detail views that display real-time progress with expandable sections for detailed breakdowns.\n\n## UI Components\n\n### Dashboard - Collapsed Completion Card\nDisplay on each swarm card in fleet overview:\n\n```\n\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502  ProjectName Repository              \u2502\n\u2502  \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510  \u2502\n\u2502  \u2502        \ud83c\udfaf 73%                  \u2502  \u2502\n\u2502  \u2502      Complete                  \u2502  \u2502\n\u2502  \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524  \u2502\n\u2502  \u2502 \u2705 Done: 45  \ud83d\udd04 Active: 8     \u2502  \u2502\n\u2502  \u2502 \ud83d\udccb Ready: 12 \ud83d\udea7 Blocked: 3    \u2502  \u2502\n\u2502  \u2502 \ud83d\udd34 2 need attention            \u2502  \u2502\n\u2502  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518  \u2502\n\u2502  Velocity: 6.2 issues/day          \u2502\n\u2502  Est. Completion: Nov 15, 2025     \u2502\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n```\n\n**Features:**\n- Large percentage number (60pt font, bold)\n- Color-coded: Green (>80%), Yellow (50-80%), Red (<50%)\n- Quick status breakdown (Done, Active, Ready, Blocked)\n- Human intervention flag count (if >0)\n- Velocity indicator\n- Estimated completion date\n- Tap to expand to detail view\n\n### Detail View - Expanded Completion Card\n\nFull-screen detailed breakdown with:\n\n**1. Header Section**\n- Large percentage with animated progress ring\n- Linear progress bar (animated fill)\n- Last updated timestamp\n\n**2. Issues Breakdown**\n- \u2705 Done: Count + percentage\n- \ud83d\udd04 In Progress: Count + percentage\n- \ud83d\udccb Ready: Count + percentage  \n- \ud83d\udea7 Blocked: Count + percentage\n- Visual bar chart representation\n\n**3. Human Intervention Section** (if applicable)\n- Expandable list of flagged issues\n- Priority badges (\ud83d\udd34 Critical, \ud83d\udfe1 Review Needed)\n- Issue title and number\n- Agent status message\n- Blocked duration\n- Quick action buttons:\n  - [View Issue] - Opens GitHub issue\n  - [Assign to Me] - Creates assignment\n  - [Approve] / [Reject] - For review issues\n\n**4. Velocity Trends**\n- 7-day bar chart (issues closed per day)\n- Average velocity indicator\n- Trend arrow (\u2191\u2193\u2192)\n\n**5. Forecast Section**\n- Estimated completion date\n- Confidence level (High/Medium/Low + percentage)\n- Based on current velocity note\n- Adjustable if velocity changes\n\n**6. All Issues List** (Filterable)\n- Tabs: [All] [Done] [Active] [Ready] [Blocked] [Flagged]\n- Each issue shows:\n  - Status emoji + issue number + title\n  - Agent name and time in current status\n  - Swipe actions: Flag, Unflag, Comment\n- Infinite scroll with pagination\n- Pull-to-refresh\n\n## Data Flow\n\n1. **Initial Load**: Fetch from `GET /api/v1/swarms/:id/project/completion`\n2. **Polling**: Refresh every 15s when detail view active\n3. **Real-time Updates**: Firebase listener for instant changes\n4. **Optimistic Updates**: Show changes immediately, rollback on error\n\n## API Response Format\n\n```json\n{\n  \"completion_percentage\": 73,\n  \"total_issues\": 68,\n  \"completed_issues\": 45,\n  \"in_progress_issues\": 8,\n  \"ready_issues\": 12,\n  \"blocked_issues\": 3,\n  \"issues_requiring_human_intervention\": [\n    {\n      \"issue_number\": 127,\n      \"title\": \"Merge conflict in auth module\",\n      \"priority\": \"critical\",\n      \"blocked_duration_hours\": 48,\n      \"agent_message\": \"Unable to resolve conflict\",\n      \"github_url\": \"https://github.com/...\"\n    }\n  ],\n  \"velocity_trend\": {\n    \"issues_per_day\": 6.2,\n    \"last_7_days\": [5, 8, 7, 6, 4, 9, 7],\n    \"trend\": \"stable\"\n  },\n  \"estimated_completion_date\": \"2025-11-15\",\n  \"confidence_level\": 0.95\n}\n```\n\n## Animations & Interactions\n\n- **Percentage Counter**: Animated count-up on load\n- **Progress Ring**: Circular animation around percentage\n- **Progress Bar**: Smooth fill animation (left to right)\n- **Card Expansion**: Smooth height transition with spring animation\n- **Pull-to-Refresh**: Elastic bounce effect\n- **Skeleton Loading**: Shimmer effect while loading\n- **Error States**: Toast notifications for failures\n\n## Acceptance Criteria\n\n- [ ] Collapsed completion card displays on dashboard for each swarm\n- [ ] Large percentage number is prominent and color-coded\n- [ ] Issues breakdown shows all 4 statuses (Done, Active, Ready, Blocked)\n- [ ] Human intervention count badge appears when >0\n- [ ] Tap card expands to full detail view\n- [ ] Expanded view shows all sections (breakdown, interventions, velocity, forecast, issues)\n- [ ] Priority badges display correctly (\ud83d\udd34 Critical, \ud83d\udfe1 Review)\n- [ ] Quick action buttons work (View, Assign, Approve, Reject)\n- [ ] 7-day velocity chart renders correctly\n- [ ] Estimated completion date calculated from velocity\n- [ ] Filterable issue list with tabs works\n- [ ] Swipe actions functional (Flag, Unflag, Comment)\n- [ ] Polling updates UI every 15s without flicker\n- [ ] Pull-to-refresh triggers immediate update\n- [ ] Animations smooth (60fps)\n- [ ] Loading states display properly\n- [ ] Responsive design works on tablets\n- [ ] Works offline with cached data\n\n**Priority:** critical  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile, ui/ux  \n**Depends On:** Backend - Continuous Polling Architecture (#20), Mobile - Swarm Detail View (#7)",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGiw",
+        "name": "P2",
+        "description": "Medium priority - important but not urgent",
+        "color": "fbca04"
+      }
+    ],
+    "number": 21,
+    "state": "OPEN",
+    "title": "Mobile - Project Completion Percentage UI"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nConduct comprehensive security audit and penetration testing before production launch.\n\n## Scope\n- Authentication & Authorization\n- API Security\n- Data Security\n- Mobile App Security\n- Infrastructure\n\n## Deliverables\n- Penetration test report\n- Remediation recommendations\n- Re-test after fixes\n\n## Acceptance Criteria\n- [ ] All critical vulnerabilities fixed\n- [ ] High-severity issues fixed/mitigated\n- [ ] Penetration test report reviewed\n- [ ] Security best practices implemented\n- [ ] Firebase security rules validated\n- [ ] SSH credentials never exposed\n- [ ] Rate limiting prevents abuse\n- [ ] Re-test confirms fixes\n\n**Priority:** high  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** security, testing",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGmQ",
+        "name": "P3",
+        "description": "Low priority - nice to have",
+        "color": "0e8a16"
+      },
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGvQ",
+        "name": "human",
+        "description": "Requires human decision/input",
+        "color": "e99695"
+      }
+    ],
+    "number": 18,
+    "state": "OPEN",
+    "title": "Security - Penetration Testing & Audit"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nEnable batch operations across multiple swarms simultaneously.\n\n## Features\n- Multi-select mode\n- Batch actions\n- Swarm groups\n\n## Acceptance Criteria\n- [ ] Multi-select mode toggles\n- [ ] All batch actions work\n- [ ] Progress shown\n- [ ] Result summary\n- [ ] Groups can be created/edited\n- [ ] Groups persist\n- [ ] Error handling\n- [ ] Confirmation dialogs\n\n**Priority:** low  \n**Milestone:** QiFlow Control Center v2.0  \n**Labels:** feature, mobile, ops  \n**Depends On:** Mobile - Swarm Control Actions",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGmQ",
+        "name": "P3",
+        "description": "Low priority - nice to have",
+        "color": "0e8a16"
+      }
+    ],
+    "number": 17,
+    "state": "OPEN",
+    "title": "Feature - Multi-Swarm Batch Operations"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nComprehensive documentation for setting up and using QiFlow Control Center.\n\n## Documentation Sections\n1. User Guide\n2. Administrator Guide\n3. Developer Guide\n4. QiFlow Swarm Integration\n\n## Deliverables\n- README.md\n- User guide, admin guide, developer guide\n- Swarm integration guide\n- API reference\n\n## Acceptance Criteria\n- [ ] All documentation sections written\n- [ ] Code examples tested\n- [ ] Screenshots/diagrams included\n- [ ] API reference from OpenAPI spec\n- [ ] Spelling and grammar checked\n- [ ] Reviewed by 2+ developers\n\n**Priority:** medium  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** docs, feature",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGiw",
+        "name": "P2",
+        "description": "Medium priority - important but not urgent",
+        "color": "fbca04"
+      }
+    ],
+    "number": 15,
+    "state": "OPEN",
+    "title": "Documentation - QiFlow Control Center Setup Guide"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nProvide actionable insights into swarm performance, costs, and productivity with charts and trend analysis.\n\n## Dashboards\n1. Performance Metrics\n2. Cost Analysis\n3. Swarm Comparison\n4. Alerts & Anomalies\n\n## Acceptance Criteria\n- [ ] All 4 dashboards implemented with charts\n- [ ] Charts render smoothly on mobile\n- [ ] Date range selector filters all metrics\n- [ ] Drill-down navigation works\n- [ ] Export generates valid PNG/PDF\n- [ ] Calculations accurate and match backend\n- [ ] Responsive design for tablets\n\n**Priority:** medium  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile, monitoring  \n**Depends On:** Mobile - Customer & Project Management",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGiw",
+        "name": "P2",
+        "description": "Medium priority - important but not urgent",
+        "color": "fbca04"
+      }
+    ],
+    "number": 12,
+    "state": "OPEN",
+    "title": "Mobile - Analytics & Insights"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nManage customers and projects, track billing, API costs, and revenue share calculations.\n\n## Features\n- Customer list\n- Customer detail view\n- Project detail view\n- Billing dashboard\n\n## Acceptance Criteria\n- [ ] Customer list displays all customers\n- [ ] Customer detail shows all projects\n- [ ] Billing dashboard calculates costs correctly\n- [ ] Revenue share calculations accurate\n- [ ] Export CSV generates valid invoice data\n- [ ] Project velocity trends displayed\n- [ ] Estimated completion date uses linear regression\n- [ ] All data syncs with backend\n- [ ] Offline mode caches last known state\n\n**Priority:** medium  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile, commercial  \n**Depends On:** Mobile - Dashboard (Fleet Overview)",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGiw",
+        "name": "P2",
+        "description": "Medium priority - important but not urgent",
+        "color": "fbca04"
+      }
+    ],
+    "number": 11,
+    "state": "OPEN",
+    "title": "Mobile - Customer & Project Management"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nEnable quick SSH access to swarm hosts directly from the mobile app.\n\n## Features\n- iOS: Launch Termius/Prompt\n- Android: Launch Termux/JuiceSSH/ConnectBot\n- Fallback: Copy SSH command\n- Secure credential storage\n- Connection profiles\n\n## Acceptance Criteria\n- [ ] SSH button launches external client\n- [ ] Fallback to clipboard copy\n- [ ] SSH credentials stored encrypted\n- [ ] Connection profiles editable\n- [ ] Biometric auth option\n- [ ] Auto-detect installed SSH clients\n\n**Priority:** medium  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile, ops  \n**Depends On:** Mobile - Swarm Detail View",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGiw",
+        "name": "P2",
+        "description": "Medium priority - important but not urgent",
+        "color": "fbca04"
+      }
+    ],
+    "number": 10,
+    "state": "OPEN",
+    "title": "Mobile - SSH Quick Connect"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nImplement quick action controls for managing swarms: pause, resume, restart agents, force sync, emergency stop, and manual trigger.\n\n## Control Actions\n1. Pause/Resume Swarm\n2. Restart Agent\n3. Force Sync\n4. Emergency Stop\n5. Manual Trigger\n6. Schedule Presets\n\n## Acceptance Criteria\n- [ ] All 6 control actions implemented\n- [ ] Confirmation dialogs for destructive actions\n- [ ] Real-time status updates during actions\n- [ ] Error handling with user-friendly messages\n- [ ] Schedule presets apply instantly\n- [ ] Custom presets saved to user profile\n- [ ] Audit log captures all control actions\n- [ ] Works offline (queues actions when reconnected)\n\n**Priority:** high  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile, ops  \n**Depends On:** Mobile - Swarm Detail View",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGiw",
+        "name": "P2",
+        "description": "Medium priority - important but not urgent",
+        "color": "fbca04"
+      }
+    ],
+    "number": 9,
+    "state": "OPEN",
+    "title": "Mobile - Swarm Control Actions"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nImplement push notifications for critical swarm events with configurable alert rules and notification preferences.\n\n## Alert Types\n- Critical: Swarm offline, API quota exhausted, disk critical\n- Warning: Test coverage drop, rate limits, high resource usage\n- Info: Milestone completed, PR merged, issue closed\n\n## Features\n- FCM integration\n- In-app notification center\n- Per-swarm preferences\n- Snooze alerts\n- Configurable alert rules\n\n## Acceptance Criteria\n- [ ] FCM configured for iOS and Android\n- [ ] Backend sends notifications for all alert types\n- [ ] Notifications appear on lock screen\n- [ ] Tap notification opens relevant swarm detail\n- [ ] In-app notification center displays history\n- [ ] Alert preferences saved per swarm\n- [ ] Snooze functionality works\n- [ ] Alert rules configurable in UI\n- [ ] Do Not Disturb schedule support\n\n**Priority:** high  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile, monitoring  \n**Depends On:** Backend - Monitoring API Service",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGiw",
+        "name": "P2",
+        "description": "Medium priority - important but not urgent",
+        "color": "fbca04"
+      }
+    ],
+    "number": 8,
+    "state": "OPEN",
+    "title": "Mobile - Push Notifications & Alerts"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nDetailed view for individual swarm showing real-time activity feed, current agent status, resource metrics, schedule configuration, and issue board.\n\n## Tabs/Sections\n1. Activity Feed (real-time commits, PRs, issues, tests)\n2. Agent Status (live status with control buttons)\n3. Resource Metrics (CPU, memory, disk, API quota charts)\n4. Schedule Editor (cron editor, presets, save & deploy)\n5. Issue Board (Kanban: Ready, In Progress, Blocked, Done)\n\n## Acceptance Criteria\n- [ ] All 5 tabs/sections implemented\n- [ ] Activity feed updates in real-time\n- [ ] Agent status reflects actual swarm state\n- [ ] Resource metrics displayed with charts\n- [ ] Schedule editor saves changes to backend\n- [ ] Issue board syncs with GitHub\n- [ ] Loading states and error handling\n- [ ] Smooth animations and transitions\n\n**Priority:** critical  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile  \n**Depends On:** Mobile - Dashboard (Fleet Overview)",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGiw",
+        "name": "P2",
+        "description": "Medium priority - important but not urgent",
+        "color": "fbca04"
+      }
+    ],
+    "number": 7,
+    "state": "OPEN",
+    "title": "Mobile - Swarm Detail View"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nCreate the main dashboard showing all registered swarms in a grid view with real-time status updates, aggregate stats, and quick filters.\n\n## UI Components\n- Swarm Grid View (status, host info, activity, quick actions)\n- Aggregate Stats (swarms running, issues closed, PRs merged, API spend, alerts)\n- Filters & Search (customer, status, host type, priority)\n\n## Real-time Updates\n- Firebase listeners update swarm status instantly\n- Pull-to-refresh for manual sync\n- Auto-refresh every 60 seconds\n\n## Acceptance Criteria\n- [ ] Dashboard displays all swarms in grid layout\n- [ ] Real-time status updates via Firebase listeners\n- [ ] Aggregate stats calculate correctly\n- [ ] Filters and search work correctly\n- [ ] Pull-to-refresh triggers manual sync\n- [ ] Tap swarm card navigates to detail view\n- [ ] Loading states and error handling\n- [ ] Responsive design for tablets\n\n**Priority:** critical  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile  \n**Depends On:** Mobile - Authentication & Onboarding",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMDSAmQ",
+        "name": "P1",
+        "description": "High priority - important",
+        "color": "d93f0b"
+      }
+    ],
+    "number": 6,
+    "state": "OPEN",
+    "title": "Mobile - Dashboard (Fleet Overview)"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nImplement Firebase Authentication with email/password, optional 2FA, and initial onboarding flow for new users.\n\n## Features\n- Email/password login with validation\n- Optional 2FA using Firebase Auth\n- Password reset flow\n- Session persistence across app restarts\n- Secure token storage\n- Onboarding wizard for first-time users\n\n## Screens\n1. Login Screen\n2. Sign Up Screen\n3. 2FA Setup Screen\n4. Onboarding Wizard\n\n## Acceptance Criteria\n- [ ] Login screen with email/password authentication\n- [ ] Sign up flow with email verification\n- [ ] Password reset via email link\n- [ ] Optional 2FA with authenticator app\n- [ ] Session token stored securely\n- [ ] Auto-login on app restart if session valid\n- [ ] Onboarding wizard shown to new users\n- [ ] Logout clears all credentials\n- [ ] Error handling for network failures\n- [ ] Unit tests for auth logic\n\n**Priority:** critical  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile, security  \n**Depends On:** Backend - Monitoring API Service",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMDSAmQ",
+        "name": "P1",
+        "description": "High priority - important",
+        "color": "d93f0b"
+      }
+    ],
+    "number": 5,
+    "state": "OPEN",
+    "title": "Mobile - Authentication & Onboarding"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nCreate the central monitoring backend that receives heartbeat data from all swarm deployments, stores it in Firebase, and triggers alerts based on configurable rules.\n\n## API Endpoints\n- POST /api/v1/heartbeat\n- GET /api/v1/swarms\n- GET /api/v1/swarms/:swarm_id\n- POST /api/v1/swarms/:swarm_id/control\n\n## Requirements\n- Validate heartbeat data before storing\n- Update Firebase Realtime Database on each heartbeat\n- Detect missed heartbeats (no update for >90 seconds)\n- Trigger FCM notifications for critical alerts\n- Rate limiting and authentication with JWT\n- Audit log for all control actions\n\n## Acceptance Criteria\n- [ ] All API endpoints implemented and documented\n- [ ] Heartbeat data stored in Firebase with proper indexing\n- [ ] Alert detection system triggers on missed heartbeats\n- [ ] JWT authentication on all endpoints\n- [ ] Rate limiting configured (100 req/min per swarm)\n- [ ] Integration tests with 95%+ coverage\n- [ ] API documentation with OpenAPI/Swagger\n\n**Priority:** critical  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, backend, monitoring, ops  \n**Depends On:** Swarm Heartbeat Agent Module",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGhA",
+        "name": "P0",
+        "description": "Critical - blocks everything",
+        "color": "d73a4a"
+      }
+    ],
+    "number": 3,
+    "state": "OPEN",
+    "title": "Backend - Monitoring API Service"
+  },
+  {
+    "assignees": [],
+    "body": "## Overview\nInitialize the QiFlow Control Center project - a mobile command center for managing multiple QiFlow swarm deployments across VMs, Raspberry Pis, and cloud instances.\n\n## Requirements\n- Create React Native project with TypeScript\n- Set up Node.js/Express backend repository\n- Configure Firebase project (Auth, Realtime Database, Cloud Messaging)\n- Set up development environments for iOS and Android\n- Create GitHub repositories and CI/CD pipelines\n\n## Acceptance Criteria\n- [ ] React Native project initialized with TypeScript and ESLint\n- [ ] Backend repository with Express.js and TypeScript\n- [ ] Firebase project created with all necessary services enabled\n- [ ] Development environment documented in README\n- [ ] GitHub Actions workflows for automated testing\n- [ ] Basic project structure following best practices\n\n## Tech Stack\n- Mobile: React Native (iOS + Android)\n- Backend: Node.js + Express\n- Database: Firebase Realtime Database\n- Auth: Firebase Authentication\n- Push Notifications: Firebase Cloud Messaging\n- API Integration: GitHub REST API\n\n**Priority:** critical  \n**Milestone:** QiFlow Control Center v1.0  \n**Labels:** feature, mobile, backend, chore",
+    "labels": [
+      {
+        "id": "LA_kwDOP7Nhas8AAAACMEtGhA",
+        "name": "P0",
+        "description": "Critical - blocks everything",
+        "color": "d73a4a"
+      }
+    ],
+    "number": 1,
+    "state": "OPEN",
+    "title": "QiFlow Control Center - Project Setup"
+  }
+]
