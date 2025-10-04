@@ -10,7 +10,7 @@ on:
 jobs:
   test-and-build:
     name: Test & Build
-    runs-on: [self-hosted, Linux, wsl2]
+    runs-on: [self-hosted, Linux]
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
 
     steps:
