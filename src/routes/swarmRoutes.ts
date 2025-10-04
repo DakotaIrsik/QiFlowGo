@@ -4,6 +4,7 @@ import { cache } from '../services/cacheService';
 import { CreateSwarmParams } from '../types/swarm';
 import { ProjectCompletionService } from '../services/projectCompletionService';
 import { SwarmDetailService } from '../services/swarmDetailService';
+import { SwarmControlService } from '../services/swarmControlService';
 
 const router = Router();
 
@@ -386,7 +387,8 @@ router.post('/heartbeat', async (req: Request, res: Response) => {
 /**
  * POST /api/v1/swarms/:swarm_id/control
  * Execute control actions on a swarm
- * Actions: start, stop, restart, update
+ * Actions: pause, resume, restart_agent, force_sync, emergency_stop, manual_trigger, apply_schedule_preset
+ * Used by mobile app Swarm Control Actions (Issue #9)
  */
 router.post('/swarms/:swarm_id/control', async (req: Request, res: Response) => {
   try {
@@ -401,7 +403,16 @@ router.post('/swarms/:swarm_id/control', async (req: Request, res: Response) => 
       });
     }
 
-    const validActions = ['start', 'stop', 'restart', 'update', 'config'];
+    const validActions = [
+      'pause',
+      'resume',
+      'restart_agent',
+      'force_sync',
+      'emergency_stop',
+      'manual_trigger',
+      'apply_schedule_preset',
+    ];
+
     if (!validActions.includes(action)) {
       return res.status(400).json({
         success: false,
@@ -409,39 +420,90 @@ router.post('/swarms/:swarm_id/control', async (req: Request, res: Response) => 
       });
     }
 
-    // Check if swarm exists
-    const swarm = await SwarmModel.findById(swarm_id);
-    if (!swarm) {
-      return res.status(404).json({
+    // Validate action is allowed for current swarm state
+    const validation = await SwarmControlService.validateControlAction(swarm_id, action);
+    if (!validation.valid) {
+      return res.status(400).json({
         success: false,
-        error: 'Swarm not found',
+        error: validation.error,
       });
     }
 
-    // Log control action for audit
-    console.log(`[AUDIT] Control action on swarm ${swarm_id}: ${action}`, {
-      parameters,
-      timestamp: new Date().toISOString(),
-    });
+    // Execute control action
+    let result;
+    switch (action) {
+      case 'pause':
+        result = await SwarmControlService.pauseSwarm(swarm_id);
+        break;
 
-    // In a real implementation, this would trigger remote commands
-    // For now, we return a success response
+      case 'resume':
+        result = await SwarmControlService.resumeSwarm(swarm_id);
+        break;
+
+      case 'restart_agent':
+        result = await SwarmControlService.restartAgent(swarm_id, parameters?.agent_id);
+        break;
+
+      case 'force_sync':
+        result = await SwarmControlService.forceSync(swarm_id);
+        break;
+
+      case 'emergency_stop':
+        result = await SwarmControlService.emergencyStop(swarm_id, parameters?.reason);
+        break;
+
+      case 'manual_trigger':
+        result = await SwarmControlService.manualTrigger(swarm_id);
+        break;
+
+      case 'apply_schedule_preset':
+        if (!parameters?.preset_name) {
+          return res.status(400).json({
+            success: false,
+            error: 'Missing required parameter: preset_name',
+          });
+        }
+        result = await SwarmControlService.applySchedulePreset(swarm_id, parameters.preset_name);
+        break;
+
+      default:
+        return res.status(400).json({
+          success: false,
+          error: 'Unknown action',
+        });
+    }
+
     res.json({
       success: true,
-      message: `Control action '${action}' queued for swarm ${swarm_id}`,
-      data: {
-        swarm_id,
-        action,
-        parameters,
-        status: 'queued',
-        queued_at: new Date().toISOString(),
-      },
+      data: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error executing control action:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to execute control action',
+      error: error.message || 'Failed to execute control action',
+    });
+  }
+});
+
+/**
+ * GET /api/v1/swarms/schedule/presets
+ * Get available schedule presets
+ * Used by mobile app Swarm Control Actions - Schedule Presets (Issue #9)
+ */
+router.get('/swarms/schedule/presets', (req: Request, res: Response) => {
+  try {
+    const presets = SwarmControlService.getSchedulePresets();
+
+    res.json({
+      success: true,
+      data: presets,
+    });
+  } catch (error) {
+    console.error('Error fetching schedule presets:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch schedule presets',
     });
   }
 });

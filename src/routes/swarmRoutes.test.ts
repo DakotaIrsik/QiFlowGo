@@ -4,6 +4,7 @@ import swarmRoutes from './swarmRoutes';
 import { SwarmModel } from '../models/SwarmModel';
 import { cache } from '../services/cacheService';
 import { ProjectCompletionService } from '../services/projectCompletionService';
+import { SwarmControlService } from '../services/swarmControlService';
 
 // Mock the model and cache
 jest.mock('../models/SwarmModel');
@@ -15,6 +16,7 @@ jest.mock('../services/cacheService', () => ({
   },
 }));
 jest.mock('../services/projectCompletionService');
+jest.mock('../services/swarmControlService');
 
 describe('Swarm Routes', () => {
   let app: Application;
@@ -829,6 +831,255 @@ describe('Swarm Routes', () => {
         'repo',
         'secret-token'
       );
+    });
+  });
+
+  describe('POST /api/v1/swarms/:swarm_id/control', () => {
+    const mockSwarm = { swarm_id: 'test-swarm-1', name: 'Test Swarm', status: 'online' };
+
+    beforeEach(() => {
+      (SwarmControlService.validateControlAction as jest.Mock).mockResolvedValue({ valid: true });
+    });
+
+    it('should pause a swarm', async () => {
+      const mockResult = {
+        swarm_id: 'test-swarm-1',
+        action: 'pause',
+        status: 'queued',
+        message: 'Pause command queued',
+        queued_at: new Date().toISOString(),
+      };
+
+      (SwarmControlService.pauseSwarm as jest.Mock).mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'pause' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockResult);
+      expect(SwarmControlService.validateControlAction).toHaveBeenCalledWith('test-swarm-1', 'pause');
+      expect(SwarmControlService.pauseSwarm).toHaveBeenCalledWith('test-swarm-1');
+    });
+
+    it('should resume a swarm', async () => {
+      const mockResult = {
+        swarm_id: 'test-swarm-1',
+        action: 'resume',
+        status: 'queued',
+        message: 'Resume command queued',
+        queued_at: new Date().toISOString(),
+      };
+
+      (SwarmControlService.resumeSwarm as jest.Mock).mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'resume' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockResult);
+      expect(SwarmControlService.resumeSwarm).toHaveBeenCalledWith('test-swarm-1');
+    });
+
+    it('should restart a specific agent', async () => {
+      const mockResult = {
+        swarm_id: 'test-swarm-1',
+        action: 'restart_agent',
+        status: 'queued',
+        message: 'Restart agent-123',
+        queued_at: new Date().toISOString(),
+      };
+
+      (SwarmControlService.restartAgent as jest.Mock).mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'restart_agent', parameters: { agent_id: 'agent-123' } })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(SwarmControlService.restartAgent).toHaveBeenCalledWith('test-swarm-1', 'agent-123');
+    });
+
+    it('should force sync', async () => {
+      const mockResult = {
+        swarm_id: 'test-swarm-1',
+        action: 'force_sync',
+        status: 'queued',
+        message: 'Force sync queued',
+        queued_at: new Date().toISOString(),
+      };
+
+      (SwarmControlService.forceSync as jest.Mock).mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'force_sync' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(SwarmControlService.forceSync).toHaveBeenCalledWith('test-swarm-1');
+    });
+
+    it('should perform emergency stop', async () => {
+      const mockResult = {
+        swarm_id: 'test-swarm-1',
+        action: 'emergency_stop',
+        status: 'queued',
+        message: 'EMERGENCY STOP queued',
+        queued_at: new Date().toISOString(),
+      };
+
+      (SwarmControlService.emergencyStop as jest.Mock).mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'emergency_stop', parameters: { reason: 'Critical bug' } })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(SwarmControlService.emergencyStop).toHaveBeenCalledWith('test-swarm-1', 'Critical bug');
+    });
+
+    it('should trigger manual processing', async () => {
+      const mockResult = {
+        swarm_id: 'test-swarm-1',
+        action: 'manual_trigger',
+        status: 'queued',
+        message: 'Manual trigger queued',
+        queued_at: new Date().toISOString(),
+      };
+
+      (SwarmControlService.manualTrigger as jest.Mock).mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'manual_trigger' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(SwarmControlService.manualTrigger).toHaveBeenCalledWith('test-swarm-1');
+    });
+
+    it('should apply schedule preset', async () => {
+      const mockResult = {
+        swarm_id: 'test-swarm-1',
+        action: 'apply_schedule_preset',
+        status: 'queued',
+        message: 'Schedule preset applied',
+        queued_at: new Date().toISOString(),
+      };
+
+      (SwarmControlService.applySchedulePreset as jest.Mock).mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'apply_schedule_preset', parameters: { preset_name: 'Always Active' } })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(SwarmControlService.applySchedulePreset).toHaveBeenCalledWith(
+        'test-swarm-1',
+        'Always Active'
+      );
+    });
+
+    it('should return 400 if action is missing', async () => {
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Missing required field: action');
+    });
+
+    it('should return 400 for invalid action', async () => {
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'invalid_action' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Invalid action');
+    });
+
+    it('should return 400 if validation fails', async () => {
+      (SwarmControlService.validateControlAction as jest.Mock).mockResolvedValue({
+        valid: false,
+        error: 'Cannot pause an offline swarm',
+      });
+
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'pause' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Cannot pause an offline swarm');
+    });
+
+    it('should return 400 if preset_name is missing for apply_schedule_preset', async () => {
+      const response = await request(app)
+        .post('/api/v1/swarms/test-swarm-1/control')
+        .send({ action: 'apply_schedule_preset', parameters: {} })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Missing required parameter: preset_name');
+    });
+
+    it('should handle service errors gracefully', async () => {
+      (SwarmControlService.pauseSwarm as jest.Mock).mockRejectedValue(new Error('Swarm not found'));
+
+      const response = await request(app)
+        .post('/api/v1/swarms/nonexistent/control')
+        .send({ action: 'pause' })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Swarm not found');
+    });
+  });
+
+  describe('GET /api/v1/swarms/schedule/presets', () => {
+    it('should return all schedule presets', async () => {
+      const mockPresets = [
+        {
+          name: 'Always Active',
+          cron_expression: '* * * * *',
+          timezone: 'UTC',
+          description: 'Run continuously',
+        },
+        {
+          name: 'Business Hours',
+          cron_expression: '0 9-17 * * 1-5',
+          timezone: 'America/New_York',
+          description: 'Weekdays 9-5',
+        },
+      ];
+
+      (SwarmControlService.getSchedulePresets as jest.Mock).mockReturnValue(mockPresets);
+
+      const response = await request(app).get('/api/v1/swarms/schedule/presets').expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockPresets);
+      expect(response.body.data).toHaveLength(2);
+    });
+
+    it('should handle errors gracefully', async () => {
+      (SwarmControlService.getSchedulePresets as jest.Mock).mockImplementation(() => {
+        throw new Error('Failed to fetch presets');
+      });
+
+      const response = await request(app).get('/api/v1/swarms/schedule/presets').expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Failed to fetch schedule presets');
     });
   });
 });
